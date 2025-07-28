@@ -1,0 +1,12 @@
+[general]
+name=Bare Earth Reconstructor
+description=Rekonstruiert die natürliche Erdoberfläche aus DSMs durch Entfernung von Vegetation, Gebäuden und anderen Oberflächenmerkmalen mittels morphometrischer Analyse und Interpolation.
+version=1.0.0
+author=Franz
+email=deine.email@beispiel.de
+qgisMinimumVersion=3.16
+qgisMaximumVersion=3.99
+category=Raster
+icon=icon.svg
+homepage=https://github.com/dein-github/bare_earth_reconstructor
+tags=DSM, Bare Earth, Surface Reconstruction, QGIS, LiDAR, Vegetation Removal 

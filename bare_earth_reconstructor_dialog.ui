@@ -1,0 +1,842 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>BareEarthReconstructorDialog</class>
+ <widget class="QDialog" name="BareEarthReconstructorDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>650</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Bare Earth Reconstructor</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tabInputProcessing">
+      <attribute name="title">
+       <string>Input &amp; Processing</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutTab1">
+       <item>
+        <widget class="QGroupBox" name="groupInput">
+         <property name="title">
+          <string>Input/Output</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayoutInput">
+          <item>
+           <widget class="QLabel" name="labelInputDSM">
+            <property name="text">
+             <string>Input DSM:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayoutInput">
+            <item>
+             <widget class="QComboBox" name="comboInputDSM"/>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelOr">
+              <property name="text">
+               <string>or</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEditInputDSM"/>
+            </item>
+            <item>
+             <widget class="QPushButton" name="buttonBrowseDSM">
+              <property name="text">
+               <string>Browse...</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="labelOutputDir">
+            <property name="text">
+             <string>Output Directory:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayoutOutput">
+            <item>
+             <widget class="QLineEdit" name="lineEditOutputDir"/>
+            </item>
+            <item>
+             <widget class="QPushButton" name="buttonBrowseOutputDir">
+              <property name="text">
+               <string>Browse...</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupThresholdMethod">
+         <property name="title">
+          <string>Threshold Method</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayoutThresholdMethod">
+          <item>
+           <widget class="QRadioButton" name="radioPercentile">
+            <property name="text">
+             <string>Percentile-based (Cao et al. 2020) - Recommended</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radioFixed">
+            <property name="text">
+             <string>Fixed Thresholds (Legacy)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupPercentiles">
+            <property name="title">
+             <string>Percentile Thresholds (%)</string>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayoutPercentiles">
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayoutPercLabels">
+               <item>
+                <widget class="QLabel" name="labelSlopePercentile">
+                 <property name="text">
+                  <string>Slope:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelCurvaturePercentile">
+                 <property name="text">
+                  <string>Curvature:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelResidualPercentile">
+                 <property name="text">
+                  <string>Residual:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelVariancePercentile">
+                 <property name="text">
+                  <string>Texture Variance:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelEntropyPercentile">
+                 <property name="text">
+                  <string>Texture Entropy:</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayoutPercSpins">
+               <item>
+                <widget class="QDoubleSpinBox" name="spinSlopePercentile">
+                 <property name="minimum">
+                  <double>50.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>99.0</double>
+                 </property>
+                 <property name="value">
+                  <double>90.0</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                 <property name="locale">
+                  <locale language="English" country="UnitedStates"/>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDoubleSpinBox" name="spinCurvaturePercentile">
+                 <property name="minimum">
+                  <double>50.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>99.0</double>
+                 </property>
+                 <property name="value">
+                  <double>95.0</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                 <property name="locale">
+                  <locale language="English" country="UnitedStates"/>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDoubleSpinBox" name="spinResidualPercentile">
+                 <property name="minimum">
+                  <double>50.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>99.0</double>
+                 </property>
+                 <property name="value">
+                  <double>95.0</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                 <property name="locale">
+                  <locale language="English" country="UnitedStates"/>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDoubleSpinBox" name="spinVariancePercentile">
+                 <property name="minimum">
+                  <double>50.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>99.0</double>
+                 </property>
+                 <property name="value">
+                  <double>90.0</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                 <property name="locale">
+                  <locale language="English" country="UnitedStates"/>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDoubleSpinBox" name="spinEntropyPercentile">
+                 <property name="minimum">
+                  <double>50.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>99.0</double>
+                 </property>
+                 <property name="value">
+                  <double>90.0</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                 <property name="locale">
+                  <locale language="English" country="UnitedStates"/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupFixedThresholds">
+            <property name="title">
+             <string>Fixed Thresholds</string>
+            </property>
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayoutFixed">
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayoutFixedLabels">
+               <item>
+                <widget class="QLabel" name="labelSlope">
+                 <property name="text">
+                  <string>Slope (°):</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelCurvature">
+                 <property name="text">
+                  <string>Curvature:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelResidual">
+                 <property name="text">
+                  <string>Residual (m):</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayoutFixedSpins">
+               <item>
+                <widget class="QDoubleSpinBox" name="spinSlope">
+                 <property name="minimum">
+                  <double>0.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>90.0</double>
+                 </property>
+                 <property name="value">
+                  <double>15.0</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.1</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDoubleSpinBox" name="spinCurvature">
+                 <property name="minimum">
+                  <double>-10.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>10.0</double>
+                 </property>
+                 <property name="value">
+                  <double>0.1</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.1</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDoubleSpinBox" name="spinResidual">
+                 <property name="minimum">
+                  <double>0.0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>100.0</double>
+                 </property>
+                 <property name="value">
+                  <double>2.0</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.1</double>
+                 </property>
+                 <property name="decimals">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupGaussianFilter">
+         <property name="title">
+          <string>Gaussian Filter Settings</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayoutGaussian">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayoutGaussianLabels">
+            <item>
+             <widget class="QLabel" name="labelSigma">
+              <property name="text">
+               <string>Sigma:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelKernelRadius">
+              <property name="text">
+               <string>Kernel Radius:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelGaussianIterations">
+              <property name="text">
+               <string>Iterations:</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayoutGaussianSpins">
+            <item>
+             <widget class="QDoubleSpinBox" name="spinSigma">
+              <property name="minimum">
+               <double>0.1</double>
+              </property>
+              <property name="maximum">
+               <double>10.0</double>
+              </property>
+              <property name="value">
+               <double>1.5</double>
+              </property>
+              <property name="singleStep">
+               <double>0.1</double>
+              </property>
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="locale">
+               <locale language="English" country="UnitedStates"/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinKernelRadius">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>20</number>
+              </property>
+              <property name="value">
+               <number>3</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinGaussianIterations">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>5</number>
+              </property>
+              <property name="value">
+               <number>2</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="progressBar">
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelProgressStatus">
+         <property name="text">
+          <string>Ready to start processing...</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="styleSheet">
+          <string>QLabel { color: #666666; font-style: italic; }</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="buttonRun">
+         <property name="text">
+          <string>Run Reconstruction</string>
+         </property>
+         <property name="styleSheet">
+          <string>QPushButton { 
+           background-color: #4CAF50; 
+           color: white; 
+           font-weight: bold; 
+           padding: 8px; 
+           border-radius: 4px; 
+          }
+          QPushButton:hover { 
+           background-color: #45a049; 
+          }</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabAdvanced">
+      <attribute name="title">
+       <string>Advanced Options</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutTab2">
+       <item>
+        <widget class="QGroupBox" name="groupTextureAnalysis">
+         <property name="title">
+          <string>Texture Analysis (Vegetation Detection)</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayoutTexture">
+          <item>
+           <widget class="QCheckBox" name="checkTextureAnalysis">
+            <property name="text">
+             <string>Enable Texture Analysis (3-Class Classification)</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayoutTexture">
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayoutTextureLabels">
+              <item>
+               <widget class="QLabel" name="labelTextureWindow">
+                <property name="text">
+                 <string>Window Size:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="labelVarianceThreshold">
+                <property name="text">
+                 <string>Variance Threshold:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="labelEntropyThreshold">
+                <property name="text">
+                 <string>Entropy Threshold:</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayoutTextureSpins">
+              <item>
+               <widget class="QSpinBox" name="spinTextureWindow">
+                <property name="minimum">
+                 <number>3</number>
+                </property>
+                <property name="maximum">
+                 <number>9</number>
+                </property>
+                <property name="value">
+                 <number>3</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="spinVarianceThreshold">
+                <property name="minimum">
+                 <double>0.0</double>
+                </property>
+                <property name="maximum">
+                 <double>10.0</double>
+                </property>
+                <property name="value">
+                 <double>0.5</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.1</double>
+                </property>
+                <property name="decimals">
+                 <number>3</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QDoubleSpinBox" name="spinEntropyThreshold">
+                <property name="minimum">
+                 <double>0.0</double>
+                </property>
+                <property name="maximum">
+                 <double>10.0</double>
+                </property>
+                <property name="value">
+                 <double>2.0</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.1</double>
+                </property>
+                <property name="decimals">
+                 <number>3</number>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupFilterOptions">
+         <property name="title">
+          <string>Masking/Filter Options</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayoutFilter">
+          <item>
+           <widget class="QLabel" name="labelFilterInfo">
+            <property name="text">
+             <string>Select which features to mask/remove from DSM:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkFilterAnthropogenic">
+            <property name="text">
+             <string>Filter Anthropogenic Features (Buildings, Roads, etc.)</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkFilterVegetation">
+            <property name="text">
+             <string>Filter Vegetation (Trees, Bushes, etc.)</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="labelFilterNote">
+            <property name="text">
+             <string>&lt;i&gt;Note: If no filters are selected, binary classification will be used.&lt;/i&gt;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBufferFill">
+         <property name="title">
+          <string>Buffer &amp; Fill Settings</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayoutBufferFill">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayoutBufferFillLabels">
+            <item>
+             <widget class="QLabel" name="labelBufferDistance">
+              <property name="text">
+               <string>Buffer Distance (m):</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelFillDistance">
+              <property name="text">
+               <string>Fill Distance:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelFillIterations">
+              <property name="text">
+               <string>Fill Iterations:</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayoutBufferFillSpins">
+            <item>
+             <widget class="QDoubleSpinBox" name="spinBufferDistance">
+              <property name="minimum">
+               <double>0.0</double>
+              </property>
+              <property name="maximum">
+               <double>100.0</double>
+              </property>
+              <property name="value">
+               <double>10.0</double>
+              </property>
+              <property name="singleStep">
+               <double>0.1</double>
+              </property>
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="locale">
+               <locale language="English" country="UnitedStates"/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinFillDistance">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>500</number>
+              </property>
+              <property name="value">
+               <number>50</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinFillIterations">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>10</number>
+              </property>
+              <property name="value">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabInterpolation">
+      <attribute name="title">
+       <string>Interpolation &amp; Output</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutTab3">
+       <item>
+        <widget class="QGroupBox" name="groupInterpolationMethod">
+         <property name="title">
+          <string>Interpolation Method (for Organic Results)</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayoutInterpolation">
+          <item>
+           <widget class="QRadioButton" name="radioTPS">
+            <property name="text">
+             <string>TPS (Thin Plate Spline) - Most Organic</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radioIDW">
+            <property name="text">
+             <string>IDW (Inverse Distance Weighting) - Smooth</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radioEnhanced">
+            <property name="text">
+             <string>Enhanced GDAL (Multi-stage) - Balanced</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radioSimple">
+            <property name="text">
+             <string>Simple GDAL - Fast</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupOutput">
+         <property name="title">
+          <string>Output Options</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayoutOutput">
+          <item>
+           <widget class="QCheckBox" name="checkGenerateReport">
+            <property name="text">
+             <string>Generate Processing Report</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkOrganizeOutput">
+            <property name="text">
+             <string>Organize Output Files</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTextEdit" name="textEditHelp">
+     <property name="minimumSize">
+      <size>
+       <width>250</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>250</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="textInteractionFlags">
+      <set>Qt::TextSelectableByMouse</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui> 
