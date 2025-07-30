@@ -721,7 +721,7 @@
                <number>1</number>
               </property>
               <property name="maximum">
-               <number>10</number>
+               <number>100</number>
               </property>
               <property name="value">
                <number>1</number>
@@ -742,31 +742,17 @@
       <layout class="QVBoxLayout" name="verticalLayoutTab3">
        <item>
         <widget class="QGroupBox" name="groupInterpolationMethod">
-         <property name="title">
-          <string>Interpolation Method (for Organic Results)</string>
-         </property>
+                 <property name="title">
+         <string>Interpolation Method (for Smooth Results)</string>
+        </property>
          <layout class="QVBoxLayout" name="verticalLayoutInterpolation">
-          <item>
-           <widget class="QRadioButton" name="radioTPS">
-            <property name="text">
-             <string>TPS (Thin Plate Spline) - Most Organic</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="radioIDW">
-            <property name="text">
-             <string>IDW (Inverse Distance Weighting) - Smooth</string>
-            </property>
-           </widget>
-          </item>
           <item>
            <widget class="QRadioButton" name="radioEnhanced">
             <property name="text">
              <string>Enhanced GDAL (Multi-stage) - Balanced</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>

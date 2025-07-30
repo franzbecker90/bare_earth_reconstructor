@@ -89,15 +89,15 @@ class BareEarthReconstructorDialog(QDialog, FORM_CLASS):
     def get_tab1_help_text(self):
         """Help text for Tab 1: Input & Processing"""
         return """
-<b>📁 INPUT & PROCESSING</b>
+<b>INPUT & PROCESSING</b>
 
-<b>🗂️ Input DSM:</b>
+<b>Input DSM:</b>
 Select your high-resolution DSM file or layer. Resolution will be detected automatically and parameters will be auto-scaled.
 
-<b>📂 Output Directory:</b>
+<b>Output Directory:</b>
 Choose folder for results and intermediate files. All processing outputs will be saved here.
 
-<b>🎯 Threshold Method:</b>
+<b>Threshold Method:</b>
 <u>Percentile-based (Recommended):</u>
 • Adaptive thresholds based on data distribution
 • Automatically adapts to terrain type
@@ -109,44 +109,44 @@ Choose folder for results and intermediate files. All processing outputs will be
 • Same values for all terrain types
 • Use for comparison or specific requirements
 
-<b>📊 Percentile Settings:</b>
+<b>Percentile Settings:</b>
 • <b>Slope:</b> % of values below anthropogenic threshold (90% = top 10% steepest)
 • <b>Curvature:</b> % of values below feature threshold (95% = top 5% most curved)  
 • <b>Residual:</b> % of values below anomaly threshold (95% = top 5% height differences)
 • <b>Texture Variance:</b> % of values below vegetation threshold (90% = top 10% most variable)
 • <b>Texture Entropy:</b> % of values below vegetation threshold (90% = top 10% most heterogeneous)
 
-<b>📏 Fixed Threshold Values:</b>
+<b>Fixed Threshold Values:</b>
 • <b>Slope:</b> Maximum natural slope (degrees)
 • <b>Curvature:</b> Maximum natural curvature
 • <b>Residual:</b> Height difference threshold (meters)
 
-<b>🔬 Scientific Method (Cao et al. 2020):</b>
+<b>Scientific Method (Cao et al. 2020):</b>
 Objective, reproducible, landscape-independent methodology for bare earth reconstruction.
         """
 
     def get_tab2_help_text(self):
         """Help text for Tab 2: Advanced Options"""
         return """
-<b>⚙️ ADVANCED OPTIONS</b>
+<b>ADVANCED OPTIONS</b>
 
-<b>🌊 Gaussian Filter:</b>
+<b>Gaussian Filter:</b>
 Smooths the DSM to separate terrain from features.
 • <b>Sigma:</b> Smoothing strength (auto-scaled by pixel size)
 • <b>Kernel Radius:</b> Filter size in pixels
 • <b>Iterations:</b> Number of filter passes (2-3 recommended)
 
-<b>🌿 Texture Analysis (3-Class):</b>
+<b>Texture Analysis (3-Class):</b>
 Distinguishes vegetation from anthropogenic features using surface texture patterns.
 • <b>Enable:</b> Activates 3-class classification (Natural/Vegetation/Anthropogenic)
 • <b>Window Size:</b> Analysis window (3x3 to 9x9 pixels)
 • <b>Variance Threshold:</b> Vegetation detection sensitivity
 • <b>Entropy Threshold:</b> Texture complexity threshold
 
-<b>🎯 Filter Options:</b>
+<b>Filter Options:</b>
 Choose which features to mask/remove:
-• <b>🏠 Anthropogenic:</b> Buildings, roads, infrastructure
-• <b>🌲 Vegetation:</b> Trees, bushes, forest cover
+• <b>Anthropogenic:</b> Buildings, roads, infrastructure
+• <b>Vegetation:</b> Trees, bushes, forest cover
 
 <u>Common Combinations:</u>
 • Anthropogenic only: Traditional bare earth
@@ -154,7 +154,7 @@ Choose which features to mask/remove:
 • Both: Aggressive filtering for geology
 • Neither: Validation/debugging mode
 
-<b>🔵 Buffer & Fill:</b>
+<b>Buffer & Fill:</b>
 • <b>Buffer Distance:</b> Expand masked areas (meters)
 • <b>Fill Distance:</b> Maximum interpolation reach (pixels)
 • <b>Fill Iterations:</b> Interpolation passes (1-10)
@@ -163,46 +163,34 @@ Choose which features to mask/remove:
     def get_tab3_help_text(self):
         """Help text for Tab 3: Interpolation & Output"""
         return """
-<b>🎨 INTERPOLATION & OUTPUT</b>
+<b>INTERPOLATION & OUTPUT</b>
 
-<b>🔧 Interpolation Methods:</b>
+<b>Interpolation Methods:</b>
 Choose algorithm for reconstructing masked areas:
 
-<b>🌊 TPS (Thin Plate Spline):</b>
-• Most organic, mathematically smooth surfaces
-• Best for geological continuity
-• Excellent for natural terrain reconstruction
-• Slower processing, highest quality
-
-<b>🎯 IDW (Inverse Distance Weighting):</b>
-• Smooth transitions, preserves local patterns
-• Morphological post-processing included
-• Good balance of speed and quality
-• Reliable for most applications
-
-<b>⚡ Enhanced GDAL:</b>
+<b>Enhanced GDAL (Multi-stage):</b>
 • Multi-stage processing with smoothing
-• Balanced speed and quality
+• Robust fallback method
+• Good for complex datasets
 • Reduces interpolation artifacts
-• Good general-purpose choice
 
-<b>🚀 Simple GDAL:</b>
-• Fastest processing
-• Basic interpolation algorithm
+<b>Simple GDAL:</b>
+• Fast original method
 • May create angular artifacts
-• Good for quick previews
+• Use for quick processing
+• Good for parameter testing
 
-<b>📐 Fill Parameters:</b>
+<b>Fill Parameters:</b>
 • <b>Fill Distance:</b> How far to interpolate (pixels)
 • <b>Fill Iterations:</b> Multiple passes for better results
 
-<b>🎯 Quality Tips:</b>
-• Use TPS for final high-quality results
-• Use Enhanced/Simple for testing parameters
+<b>Quality Tips:</b>
+• Use Enhanced GDAL for high-quality results
+• Use Simple GDAL for testing parameters
 • Larger fill distances = smoother results
 • Multiple iterations = better gap filling
 
-<b>▶️ Processing:</b>
+<b>Processing:</b>
 Click "Run Reconstruction" to start processing with current settings.
         """
 
@@ -223,7 +211,7 @@ Click "Run Reconstruction" to start processing with current settings.
             # Update status label
             if hasattr(self, 'labelProgressStatus'):
                 percentage = int((step / total_steps) * 100) if total_steps > 0 else 0
-                status_text = f"📊 Step {step}/{total_steps} ({percentage}%) • {message}"
+                status_text = f"Step {step}/{total_steps} ({percentage}%) • {message}"
                 self.labelProgressStatus.setText(status_text)
             
             # Force GUI update
@@ -814,7 +802,7 @@ Target smoothing window: ~{target_smoothing_distance}m
             import shutil
             from datetime import datetime
             
-            print('DEBUG: 🗂️ Organizing output files for better structure...')
+            print('DEBUG:  Organizing output files for better structure...')
             
             # Create intermediate files directory
             intermediate_dir = os.path.join(output_dir, 'Intermediate')
@@ -822,11 +810,11 @@ Target smoothing window: ~{target_smoothing_distance}m
             
             # Define final result files (keep in main directory)
             final_files = [
-                'reconstructed_dsm.tif',           # 🎯 Main result
-                'anthropogenic_features.tif',      # 🎯 Main classification
-                'texture_variance*.tif',           # 🎯 Texture analysis results
-                'texture_entropy*.tif',            # 🎯 Texture analysis results
-                'reconstruction_report_*.txt'      # 📊 Report (handled separately with wildcard)
+                'reconstructed_dsm.tif',           #  Main result
+                'anthropogenic_features.tif',      #  Main classification
+                'texture_variance*.tif',           #  Texture analysis results
+                'texture_entropy*.tif',            #  Texture analysis results
+                'reconstruction_report_*.txt'      #  Report (handled separately with wildcard)
             ]
             
             # Define intermediate files (move to subdirectory)
@@ -895,14 +883,14 @@ Target smoothing window: ~{target_smoothing_distance}m
                         prefix = final_pattern[:-5]  # Remove '*.tif'
                         if filename.startswith(prefix) and filename.endswith('.tif'):
                             should_keep = True
-                            print(f'DEBUG: ✅ Final pattern match: {filename} matches {final_pattern}')
+                            print(f'DEBUG: Final pattern match: {filename} matches {final_pattern}')
                             break
                     elif filename == final_pattern:
                         should_keep = True
                         break
                 
                 if should_keep:
-                    print(f'DEBUG: ✅ Keeping in main directory: {filename}')
+                    print(f'DEBUG: Keeping in main directory: {filename}')
                     kept_count += 1
                     continue
                 
@@ -924,7 +912,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                         suffix = intermediate_pattern[1:]
                         if filename.endswith(suffix):
                             should_move = True
-                            print(f'DEBUG: 📦 Pattern match: {filename} matches {intermediate_pattern}')
+                            print(f'DEBUG:  Pattern match: {filename} matches {intermediate_pattern}')
                             break
                     elif intermediate_pattern.endswith('*'):
                         # Handle patterns like filtered_dsm_iter_*
@@ -941,15 +929,15 @@ Target smoothing window: ~{target_smoothing_distance}m
                     try:
                         destination_path = os.path.join(intermediate_dir, filename)
                         shutil.move(file_path, destination_path)
-                        print(f'DEBUG: 📦 Moved to Intermediate/: {filename}')
+                        print(f'DEBUG:  Moved to Intermediate/: {filename}')
                         moved_count += 1
                     except Exception as e:
                         # File is likely locked by QGIS - keep in main directory with note
-                        print(f'DEBUG: 🔒 File locked, keeping in main: {filename} ({str(e)[:50]}...)')
+                        print(f'DEBUG:  File locked, keeping in main: {filename} ({str(e)[:50]}...)')
                         kept_count += 1
                 else:
                     # Unknown file - keep in main directory but log it
-                    print(f'DEBUG: ❓ Unknown file kept in main: {filename}')
+                    print(f'DEBUG:  Unknown file kept in main: {filename}')
                     kept_count += 1
             
             # Create organization summary
@@ -978,13 +966,13 @@ Target smoothing window: ~{target_smoothing_distance}m
                     f.write("You can safely delete the Intermediate/ folder\n")
                     f.write("if you only need the final results.\n")
                     
-                print(f'DEBUG: 📋 Organization summary created: _file_organization_summary.txt')
+                print(f'DEBUG:  Organization summary created: _file_organization_summary.txt')
             except Exception as e:
                 print(f'DEBUG: Error creating organization summary: {str(e)}')
             
-            print(f'DEBUG: ✅ File organization completed!')
-            print(f'DEBUG: 📁 Main directory: {kept_count} files (final results)')
-            print(f'DEBUG: 📦 Intermediate/: {moved_count} files (intermediate results)')
+            print(f'DEBUG: File organization completed!')
+            print(f'DEBUG: Main directory: {kept_count} files (final results)')
+            print(f'DEBUG: Intermediate/: {moved_count} files (intermediate results)')
             
             # Show user notification
             try:
@@ -992,14 +980,14 @@ Target smoothing window: ~{target_smoothing_distance}m
                 # Simple check if there were any locked files (based on kept vs moved ratio)
                 locked_files_note = ""
                 if kept_count > 5:  # If more than 5 files kept, likely some were locked
-                    locked_files_note = f"\n\n🔒 Note: Some files may have remained in main directory\nbecause they were locked by QGIS."
+                    locked_files_note = f"\n\n Note: Some files may have remained in main directory\nbecause they were locked by QGIS."
                 
                 QMessageBox.information(
                     self, 
                     'Files Organized', 
-                    f'📁 Output files organized successfully!\n\n'
-                    f'✅ Main Results: {kept_count} files\n'
-                    f'📦 Intermediate/: {moved_count} files\n\n'
+                    f' Output files organized successfully!\n\n'
+                    f' Main Results: {kept_count} files\n'
+                    f' Intermediate/: {moved_count} files\n\n'
                     f'Final results are in the main directory.\n'
                     f'Intermediate files moved to "Intermediate/" subfolder.{locked_files_note}'
                 )
@@ -1557,7 +1545,7 @@ Target smoothing window: ~{target_smoothing_distance}m
 
             # Initialize progress bar
             total_steps = gaussian_iterations + 9
-            self.update_progress(0, total_steps, "🚀 Starting DSM processing...")
+            self.update_progress(0, total_steps, "Starting DSM processing...")
 
             # Initialize file paths for later use
             output_anthropogenic = os.path.join(output_dir, 'anthropogenic_features.tif')
@@ -1574,7 +1562,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                     print(f'DEBUG: Applying Gaussian filter iteration {iteration + 1}/{gaussian_iterations}')
                     
                     # Update progress bar
-                    self.update_progress(iteration + 1, total_steps, f"🌊 Gaussian Filter - Iteration {iteration + 1}/{gaussian_iterations}")
+                    self.update_progress(iteration + 1, total_steps, f"Gaussian Filter - Iteration {iteration + 1}/{gaussian_iterations}")
                     
                     # Adaptive sigma: start with smaller values, increase gradually
                     if gaussian_iterations == 1:
@@ -1657,7 +1645,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                 return
 
             # Step 2: Calculate residuals (Original DSM - Filtered DSM)
-            self.update_progress(gaussian_iterations + 1, total_steps, "📏 Calculating residuals (Original - Filtered DSM)...")
+            self.update_progress(gaussian_iterations + 1, total_steps, " Calculating residuals (Original - Filtered DSM)...")
             output_residuals = os.path.join(output_dir, 'residuals.tif')
             
             # Initialize variables
@@ -1847,7 +1835,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                         print(f'DEBUG: Could not calculate residual statistics: {str(e)}')
             
             # Step 3: Calculate slope (with FILTERED DSM)
-            self.update_progress(gaussian_iterations + 2, total_steps, "⛰️ Calculating slope analysis...")
+            self.update_progress(gaussian_iterations + 2, total_steps, " Calculating slope analysis...")
             output_slope = os.path.join(output_dir, 'slope.tif')
             slope_result = processing.run(
                 'qgis:slope',
@@ -1866,7 +1854,7 @@ Target smoothing window: ~{target_smoothing_distance}m
 
 
             # Step 4: Calculate curvature (with FILTERED DSM)
-            self.update_progress(gaussian_iterations + 3, total_steps, "🌀 Calculating curvature analysis...")
+            self.update_progress(gaussian_iterations + 3, total_steps, " Calculating curvature analysis...")
             curvature_layer = None
             try:
                 curvature_result = processing.run(
@@ -1939,11 +1927,11 @@ Target smoothing window: ~{target_smoothing_distance}m
                         return
 
             # Step 4b: Texture Analysis (optional)
-            self.update_progress(gaussian_iterations + 4, total_steps, "🌿 Performing texture analysis (3-class classification)...")
+            self.update_progress(gaussian_iterations + 4, total_steps, " Performing texture analysis (3-class classification)...")
             texture_variance, texture_entropy = self.perform_texture_analysis(filtered_dsm_path, output_dir, feedback)
 
             # Step 5a: Statistical Analysis and Adaptive Threshold Calculation (Cao et al. 2020)
-            self.update_progress(gaussian_iterations + 5, total_steps, "📊 Statistical analysis & adaptive thresholds (Cao et al. 2020)...")
+            self.update_progress(gaussian_iterations + 5, total_steps, "Statistical analysis & adaptive thresholds (Cao et al. 2020)...")
             print('DEBUG: Starting statistical analysis for adaptive thresholds...')
             
             # Determine threshold values based on selected method
@@ -1996,7 +1984,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                 print('DEBUG: ====================================')
 
             # Step 5: Identify anthropogenic features
-            self.update_progress(gaussian_iterations + 6, total_steps, "🏠 Identifying anthropogenic features...")
+            self.update_progress(gaussian_iterations + 6, total_steps, " Identifying anthropogenic features...")
             # Ensure slope_layer and curvature_layer are QgsRasterLayer
             if isinstance(slope_layer, str):
                 slope_layer = QgsRasterLayer(slope_layer, 'Slope')
@@ -2091,11 +2079,11 @@ Target smoothing window: ~{target_smoothing_distance}m
                 else:
                     calc_expression = f'if(("variance@1" > {variance_threshold} OR "entropy@1" > {entropy_threshold}), 1, if(("slope@1" > {slope_threshold} OR "curvature@1" > {curvature_threshold} OR "curvature@1" < -{curvature_threshold}) AND ("variance@1" <= {variance_threshold}), 2, 0))'
                 
-                print(f'DEBUG: 🔍 CLASSIFICATION FORMULA: {calc_expression}')
-                print(f'DEBUG: 🔍 Thresholds - Variance: {variance_threshold}, Entropy: {entropy_threshold}')
-                print(f'DEBUG: 🔍 Thresholds - Slope: {slope_threshold}, Curvature: ±{curvature_threshold}')
+                print(f'DEBUG:  CLASSIFICATION FORMULA: {calc_expression}')
+                print(f'DEBUG:  Thresholds - Variance: {variance_threshold}, Entropy: {entropy_threshold}')
+                print(f'DEBUG:  Thresholds - Slope: {slope_threshold}, Curvature: ±{curvature_threshold}')
                 if use_residuals and residual_layer is not None:
-                    print(f'DEBUG: 🔍 Thresholds - Residual: ±{residual_threshold}')
+                    print(f'DEBUG:  Thresholds - Residual: ±{residual_threshold}')
             elif use_texture and not texture_layers_available:
                 # 3-class formula WITHOUT texture rasters: simplified classification
                 print('DEBUG: Using 3-class simplified classification (WITHOUT texture rasters)')
@@ -2107,11 +2095,11 @@ Target smoothing window: ~{target_smoothing_distance}m
                 else:
                     calc_expression = f'if("slope@1" <= {vegetation_slope_threshold}, 1, if(("slope@1" > {slope_threshold} OR "curvature@1" > {curvature_threshold} OR "curvature@1" < -{curvature_threshold}), 2, 0))'
                 
-                print(f'DEBUG: 🔍 CLASSIFICATION FORMULA: {calc_expression}')
-                print(f'DEBUG: 🔍 Thresholds - Vegetation slope: {vegetation_slope_threshold}, Anthropogenic slope: {slope_threshold}')
-                print(f'DEBUG: 🔍 Thresholds - Curvature: ±{curvature_threshold}')
+                print(f'DEBUG:  CLASSIFICATION FORMULA: {calc_expression}')
+                print(f'DEBUG:  Thresholds - Vegetation slope: {vegetation_slope_threshold}, Anthropogenic slope: {slope_threshold}')
+                print(f'DEBUG:  Thresholds - Curvature: ±{curvature_threshold}')
                 if use_residuals and residual_layer is not None:
-                    print(f'DEBUG: 🔍 Thresholds - Residual: ±{residual_threshold}')
+                    print(f'DEBUG:  Thresholds - Residual: ±{residual_threshold}')
             else:
                 # Original binary classification (anthropogenic=1, natural=0)
                 print('DEBUG: Using binary classification (no texture)')
@@ -2120,10 +2108,10 @@ Target smoothing window: ~{target_smoothing_distance}m
                 else:
                     calc_expression = f'("slope@1" > {slope_threshold}) OR ("curvature@1" > {curvature_threshold} OR "curvature@1" < -{curvature_threshold})'
                 
-                print(f'DEBUG: 🔍 CLASSIFICATION FORMULA: {calc_expression}')
-                print(f'DEBUG: 🔍 Thresholds - Slope: {slope_threshold}, Curvature: ±{curvature_threshold}')
+                print(f'DEBUG:  CLASSIFICATION FORMULA: {calc_expression}')
+                print(f'DEBUG:  Thresholds - Slope: {slope_threshold}, Curvature: ±{curvature_threshold}')
                 if use_residuals and residual_layer is not None:
-                    print(f'DEBUG: 🔍 Thresholds - Residual: ±{residual_threshold}')
+                    print(f'DEBUG:  Thresholds - Residual: ±{residual_threshold}')
             
             entries = []
             from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
@@ -2185,14 +2173,14 @@ Target smoothing window: ~{target_smoothing_distance}m
             if not os.path.isfile(output_anthropogenic):
                 raise Exception(f"Anthropogenic mask was not created: {output_anthropogenic}")
             
-            # 🔍 DEBUGGING: Check classification result immediately
-            print('DEBUG: 🔍 CHECKING CLASSIFICATION RESULT...')
+            #  DEBUGGING: Check classification result immediately
+            print('DEBUG:  CHECKING CLASSIFICATION RESULT...')
             classification_layer = QgsRasterLayer(output_anthropogenic, 'Classification_Check')
             if classification_layer.isValid():
                 classification_provider = classification_layer.dataProvider()
                 classification_stats = classification_provider.bandStatistics(1, QgsRasterBandStats.All)
-                print(f'DEBUG: 🔍 Classification result - Min: {classification_stats.minimumValue}, Max: {classification_stats.maximumValue}')
-                print(f'DEBUG: 🔍 Classification result - Mean: {classification_stats.mean:.3f}, StdDev: {classification_stats.stdDev:.3f}')
+                print(f'DEBUG:  Classification result - Min: {classification_stats.minimumValue}, Max: {classification_stats.maximumValue}')
+                print(f'DEBUG:  Classification result - Mean: {classification_stats.mean:.3f}, StdDev: {classification_stats.stdDev:.3f}')
                 
                 # Sample values to see what classes were actually produced
                 try:
@@ -2208,32 +2196,32 @@ Target smoothing window: ~{target_smoothing_distance}m
                                 if int_value in class_counts:
                                     class_counts[int_value] += 1
                     
-                    print(f'DEBUG: 🔍 Unique classification values: {sorted(unique_values)}')
-                    print(f'DEBUG: 🔍 Class distribution in sample:')
+                    print(f'DEBUG:  Unique classification values: {sorted(unique_values)}')
+                    print(f'DEBUG:  Class distribution in sample:')
                     for class_id, count in class_counts.items():
                         percentage = (count / sum(class_counts.values())) * 100 if sum(class_counts.values()) > 0 else 0
-                        print(f'DEBUG: 🔍   Class {class_id}: {count} pixels ({percentage:.1f}%)')
+                        print(f'DEBUG:    Class {class_id}: {count} pixels ({percentage:.1f}%)')
                     
                     if 2 not in unique_values:
-                        print('DEBUG: ❌ CRITICAL: Class 2 (Anthropogenic) was NOT produced!')
-                        print('DEBUG: 🔍 This explains why filtering fails - no class 2 pixels exist!')
+                        print('DEBUG:  CRITICAL: Class 2 (Anthropogenic) was NOT produced!')
+                        print('DEBUG:  This explains why filtering fails - no class 2 pixels exist!')
                     else:
-                        print('DEBUG: ✅ Class 2 (Anthropogenic) was produced successfully')
+                        print('DEBUG:  Class 2 (Anthropogenic) was produced successfully')
                         
                 except Exception as e:
-                    print(f'DEBUG: ⚠️ Could not sample classification values: {str(e)}')
+                    print(f'DEBUG:  Could not sample classification values: {str(e)}')
             else:
-                print('DEBUG: ❌ ERROR: Classification result layer is invalid!')
+                print('DEBUG:  ERROR: Classification result layer is invalid!')
             
             # Calculate anthropogenic statistics
             test_layer = QgsRasterLayer(output_anthropogenic, 'Test')
             if test_layer.isValid():
-                # 🔍 CRITICAL DEBUGGING: Check actual raster values
-                print('DEBUG: 🔍 ANALYZING ANTHROPOGENIC FEATURES RASTER...')
+                #  CRITICAL DEBUGGING: Check actual raster values
+                print('DEBUG:  ANALYZING ANTHROPOGENIC FEATURES RASTER...')
                 provider = test_layer.dataProvider()
                 stats = provider.bandStatistics(1, QgsRasterBandStats.All)
-                print(f'DEBUG: 🔍 Anthropogenic raster - Min: {stats.minimumValue}, Max: {stats.maximumValue}')
-                print(f'DEBUG: 🔍 Anthropogenic raster - Mean: {stats.mean:.3f}, StdDev: {stats.stdDev:.3f}')
+                print(f'DEBUG:  Anthropogenic raster - Min: {stats.minimumValue}, Max: {stats.maximumValue}')
+                print(f'DEBUG:  Anthropogenic raster - Mean: {stats.mean:.3f}, StdDev: {stats.stdDev:.3f}')
                 
                 # Sample some values to see what's actually in the raster
                 try:
@@ -2244,16 +2232,16 @@ Target smoothing window: ~{target_smoothing_distance}m
                             value = block.value(i, j)
                             if value != block.noDataValue():
                                 unique_values.add(int(value))
-                    print(f'DEBUG: 🔍 Unique values found in sample: {sorted(unique_values)}')
+                    print(f'DEBUG:  Unique values found in sample: {sorted(unique_values)}')
                     
                     if len(unique_values) == 2 and 0 in unique_values and 1 in unique_values:
-                        print('DEBUG: ❌ PROBLEM: Raster is BINARY (0,1) not 3-class (0,1,2)!')
+                        print('DEBUG:  PROBLEM: Raster is BINARY (0,1) not 3-class (0,1,2)!')
                     elif len(unique_values) == 3 and 0 in unique_values and 1 in unique_values and 2 in unique_values:
-                        print('DEBUG: ✅ Raster is 3-class (0,1,2) as expected')
+                        print('DEBUG:  Raster is 3-class (0,1,2) as expected')
                     else:
-                        print(f'DEBUG: ⚠️ Unexpected values: {sorted(unique_values)}')
+                        print(f'DEBUG:  Unexpected values: {sorted(unique_values)}')
                 except Exception as e:
-                    print(f'DEBUG: ⚠️ Could not sample raster values: {str(e)}')
+                    print(f'DEBUG:  Could not sample raster values: {str(e)}')
                 
                 anthropogenic_pixels = stats.sum
                 total_pixels = test_layer.width() * test_layer.height()
@@ -2261,7 +2249,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                 print(f'DEBUG: Anthropogenic features detected: {anthropogenic_percentage:.1f}% of area')
 
             # Step 6: Buffer the anthropogenic mask
-            self.update_progress(gaussian_iterations + 7, total_steps, f"🔵 Buffering features ({buffer_distance:.1f}m distance)...")
+            self.update_progress(gaussian_iterations + 7, total_steps, f" Buffering features ({buffer_distance:.1f}m distance)...")
             
             print(f'DEBUG: Buffer Distance from UI: {buffer_distance:.1f}m')
             
@@ -2275,7 +2263,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                     print('DEBUG: Extracting selected features based on filter options (no buffering)')
                     
                     # Get filter options from UI
-                    print('DEBUG: 🔍 CHECKING UI FILTER ELEMENTS (MASKING)...')
+                    print('DEBUG:  CHECKING UI FILTER ELEMENTS (MASKING)...')
                     print(f'DEBUG: hasattr checkFilterAnthropogenic: {hasattr(self, "checkFilterAnthropogenic")}')
                     print(f'DEBUG: hasattr checkFilterVegetation: {hasattr(self, "checkFilterVegetation")}')
                     
@@ -2321,7 +2309,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                         formula = '0'
                         print('DEBUG: No features selected for filtering - creating empty mask')
                     
-                    print(f'DEBUG: 🔍 Using formula: {formula}')
+                    print(f'DEBUG:  Using formula: {formula}')
                     
                     # Load the anthropogenic features raster
                     anthropogenic_layer = QgsRasterLayer(output_anthropogenic, 'Anthropogenic_For_Masking')
@@ -2329,7 +2317,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                         raise Exception("Could not load anthropogenic features raster for masking")
                     
                     # Create raster calculator entry
-                    from qgis.analysis import QgsRasterCalculator, QgsRasterCalculatorEntry
+                    from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
                     anthro_entry = QgsRasterCalculatorEntry()
                     anthro_entry.ref = 'A'
                     anthro_entry.raster = anthropogenic_layer
@@ -2353,23 +2341,23 @@ Target smoothing window: ~{target_smoothing_distance}m
                     if not os.path.isfile(output_buffered):
                         raise Exception("Masked raster file was not created")
                     
-                    # 🔍 Check the result of filtering
+                    #  Check the result of filtering
                     if os.path.isfile(output_buffered):
                         filtered_layer = QgsRasterLayer(output_buffered, 'Filtered_Check')
                         if filtered_layer.isValid():
                             filtered_stats = filtered_layer.dataProvider().bandStatistics(1, QgsRasterBandStats.All)
-                            print(f'DEBUG: 🔍 Filtered result - Min: {filtered_stats.minimumValue}, Max: {filtered_stats.maximumValue}')
-                            print(f'DEBUG: 🔍 Filtered result - Mean: {filtered_stats.mean:.3f}, Sum: {filtered_stats.sum:.0f}')
+                            print(f'DEBUG:  Filtered result - Min: {filtered_stats.minimumValue}, Max: {filtered_stats.maximumValue}')
+                            print(f'DEBUG:  Filtered result - Mean: {filtered_stats.mean:.3f}, Sum: {filtered_stats.sum:.0f}')
                             
                             if filtered_stats.sum == 0:
-                                print('DEBUG: ❌ CRITICAL: Filtering resulted in empty mask!')
-                                print('DEBUG: 🔍 This means the formula found no matching pixels!')
+                                print('DEBUG:  CRITICAL: Filtering resulted in empty mask!')
+                                print('DEBUG:  This means the formula found no matching pixels!')
                             else:
-                                print(f'DEBUG: ✅ Filtering successful - {filtered_stats.sum:.0f} pixels selected')
+                                print(f'DEBUG:  Filtering successful - {filtered_stats.sum:.0f} pixels selected')
                         else:
-                            print('DEBUG: ❌ ERROR: Filtered raster is invalid!')
+                            print('DEBUG:  ERROR: Filtered raster is invalid!')
                     else:
-                        print('DEBUG: ❌ ERROR: Filtered raster file was not created!')
+                        print('DEBUG:  ERROR: Filtered raster file was not created!')
                 else:
                     # For binary system: simply copy the mask
                     import shutil
@@ -2381,7 +2369,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                     print('DEBUG: Extracting selected features for selective buffering')
                     
                     # Get filter options from UI (same logic as above)
-                    print('DEBUG: 🔍 CHECKING UI FILTER ELEMENTS (MASKING)...')
+                    print('DEBUG:  CHECKING UI FILTER ELEMENTS (MASKING)...')
                     print(f'DEBUG: hasattr checkFilterAnthropogenic: {hasattr(self, "checkFilterAnthropogenic")}')
                     print(f'DEBUG: hasattr checkFilterVegetation: {hasattr(self, "checkFilterVegetation")}')
                     
@@ -2423,12 +2411,12 @@ Target smoothing window: ~{target_smoothing_distance}m
                         formula = '0'
                         print('DEBUG: No features selected for buffering - creating empty mask')
                     
-                    print(f'DEBUG: 🔍 Using formula: {formula}')
+                    print(f'DEBUG:  Using formula: {formula}')
                     
                     anthropogenic_only_path = os.path.join(output_dir, 'selected_features_for_buffering.tif')
                     
                     # Create binary mask based on selected features using QGIS Raster Calculator
-                    print(f'DEBUG: 🔍 Using formula: {formula}')
+                    print(f'DEBUG:  Using formula: {formula}')
                     
                     # Load the anthropogenic features raster
                     anthropogenic_layer = QgsRasterLayer(output_anthropogenic, 'Anthropogenic_For_Filtering')
@@ -2469,24 +2457,24 @@ Target smoothing window: ~{target_smoothing_distance}m
                     if not os.path.isfile(anthropogenic_only_path):
                         raise Exception("Filtered raster file was not created")
                     
-                    # 🔍 DEBUGGING: Check the result of initial filtering
-                    print('DEBUG: 🔍 CHECKING INITIAL FILTERING RESULT...')
+                    #  DEBUGGING: Check the result of initial filtering
+                    print('DEBUG:  CHECKING INITIAL FILTERING RESULT...')
                     if os.path.isfile(anthropogenic_only_path):
                         initial_filter_layer = QgsRasterLayer(anthropogenic_only_path, 'Initial_Filter_Check')
                         if initial_filter_layer.isValid():
                             initial_stats = initial_filter_layer.dataProvider().bandStatistics(1, QgsRasterBandStats.All)
-                            print(f'DEBUG: 🔍 Initial filtering - Min: {initial_stats.minimumValue}, Max: {initial_stats.maximumValue}')
-                            print(f'DEBUG: 🔍 Initial filtering - Mean: {initial_stats.mean:.3f}, Sum: {initial_stats.sum:.0f}')
+                            print(f'DEBUG:  Initial filtering - Min: {initial_stats.minimumValue}, Max: {initial_stats.maximumValue}')
+                            print(f'DEBUG:  Initial filtering - Mean: {initial_stats.mean:.3f}, Sum: {initial_stats.sum:.0f}')
                             
                             if initial_stats.sum == 0:
-                                print('DEBUG: ❌ CRITICAL: Initial filtering resulted in empty mask!')
-                                print('DEBUG: 🔍 This means the formula found no matching pixels!')
+                                print('DEBUG:  CRITICAL: Initial filtering resulted in empty mask!')
+                                print('DEBUG:  This means the formula found no matching pixels!')
                             else:
-                                print(f'DEBUG: ✅ Initial filtering successful - {initial_stats.sum:.0f} pixels selected')
+                                print(f'DEBUG:  Initial filtering successful - {initial_stats.sum:.0f} pixels selected')
                         else:
-                            print('DEBUG: ❌ ERROR: Initial filtered raster is invalid!')
+                            print('DEBUG:  ERROR: Initial filtered raster is invalid!')
                     else:
-                        print('DEBUG: ❌ ERROR: Initial filtered raster file was not created!')
+                        print('DEBUG:  ERROR: Initial filtered raster file was not created!')
                     
                     buffer_input = anthropogenic_only_path
                 else:
@@ -2597,24 +2585,24 @@ Target smoothing window: ~{target_smoothing_distance}m
                 if not buffer_success or not os.path.isfile(output_buffered):
                     raise Exception("All buffer methods failed")
             
-            # 🔍 DEBUGGING: Check the final buffered result
-            print('DEBUG: 🔍 CHECKING FINAL BUFFERED RESULT...')
+            #  DEBUGGING: Check the final buffered result
+            print('DEBUG:  CHECKING FINAL BUFFERED RESULT...')
             if os.path.isfile(output_buffered):
                 final_buffer_layer = QgsRasterLayer(output_buffered, 'Final_Buffer_Check')
                 if final_buffer_layer.isValid():
                     final_buffer_stats = final_buffer_layer.dataProvider().bandStatistics(1, QgsRasterBandStats.All)
-                    print(f'DEBUG: 🔍 Final buffered result - Min: {final_buffer_stats.minimumValue}, Max: {final_buffer_stats.maximumValue}')
-                    print(f'DEBUG: 🔍 Final buffered result - Mean: {final_buffer_stats.mean:.3f}, Sum: {final_buffer_stats.sum:.0f}')
+                    print(f'DEBUG:  Final buffered result - Min: {final_buffer_stats.minimumValue}, Max: {final_buffer_stats.maximumValue}')
+                    print(f'DEBUG:  Final buffered result - Mean: {final_buffer_stats.mean:.3f}, Sum: {final_buffer_stats.sum:.0f}')
                     
                     if final_buffer_stats.sum == 0:
-                        print('DEBUG: ❌ CRITICAL: Final buffering resulted in empty mask!')
-                        print('DEBUG: 🔍 This means the buffering operation failed!')
+                        print('DEBUG:  CRITICAL: Final buffering resulted in empty mask!')
+                        print('DEBUG:  This means the buffering operation failed!')
                     else:
-                        print(f'DEBUG: ✅ Final buffering successful - {final_buffer_stats.sum:.0f} pixels selected')
+                        print(f'DEBUG:  Final buffering successful - {final_buffer_stats.sum:.0f} pixels selected')
                 else:
-                    print('DEBUG: ❌ ERROR: Final buffered raster is invalid!')
+                    print('DEBUG:  ERROR: Final buffered raster is invalid!')
             else:
-                print('DEBUG: ❌ ERROR: Final buffered raster file was not created!')
+                print('DEBUG:  ERROR: Final buffered raster file was not created!')
             
             # Check for excessive buffering (might indicate too low thresholds)
             try:
@@ -2636,7 +2624,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                 pass
 
             # Step 7: Mask the filtered DSM with buffered anthropogenic features
-            self.update_progress(gaussian_iterations + 8, total_steps, "🎭 Masking DSM with detected features...")
+            self.update_progress(gaussian_iterations + 8, total_steps, " Masking DSM with detected features...")
             masked_dsm_path = os.path.join(output_dir, 'masked_dsm.tif')
             
             # Load layers for masking calculation
@@ -2676,7 +2664,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                 calc_expression = 'if ( "buffered_mask@1" = 1, 0/0, "filtered_dsm@1" )'  # Mask where buffer=1
                 
                 # Get filter options for debug output
-                print('DEBUG: 🔍 CHECKING UI FILTER ELEMENTS (MASKING)...')
+                print('DEBUG:  CHECKING UI FILTER ELEMENTS (MASKING)...')
                 print(f'DEBUG: hasattr checkFilterAnthropogenic: {hasattr(self, "checkFilterAnthropogenic")}')
                 print(f'DEBUG: hasattr checkFilterVegetation: {hasattr(self, "checkFilterVegetation")}')
                 
@@ -2722,7 +2710,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                     formula = '0'
                     print('DEBUG: No features selected for masking - creating empty mask')
                 
-                print(f'DEBUG: 🔍 Using formula: {formula}')
+                print(f'DEBUG:  Using formula: {formula}')
                 
                 # Load the anthropogenic features raster
                 anthropogenic_layer = QgsRasterLayer(output_anthropogenic, 'Anthropogenic_For_Filtering')
@@ -2743,57 +2731,57 @@ Target smoothing window: ~{target_smoothing_distance}m
                     feedback=feedback
                 )
                 
-                # 🔍 Check the result of filtering
+                #  Check the result of filtering
                 if os.path.isfile(output_buffered):
                     filtered_layer = QgsRasterLayer(output_buffered, 'Filtered_Check')
                     if filtered_layer.isValid():
                         filtered_stats = filtered_layer.dataProvider().bandStatistics(1, QgsRasterBandStats.All)
-                        print(f'DEBUG: 🔍 Filtered result - Min: {filtered_stats.minimumValue}, Max: {filtered_stats.maximumValue}')
-                        print(f'DEBUG: 🔍 Filtered result - Mean: {filtered_stats.mean:.3f}, Sum: {filtered_stats.sum:.0f}')
+                        print(f'DEBUG:  Filtered result - Min: {filtered_stats.minimumValue}, Max: {filtered_stats.maximumValue}')
+                        print(f'DEBUG:  Filtered result - Mean: {filtered_stats.mean:.3f}, Sum: {filtered_stats.sum:.0f}')
                         
                         if filtered_stats.sum == 0:
-                            print('DEBUG: ❌ CRITICAL: Filtering resulted in empty mask!')
-                            print('DEBUG: 🔍 This means the formula found no matching pixels!')
+                            print('DEBUG:  CRITICAL: Filtering resulted in empty mask!')
+                            print('DEBUG:  This means the formula found no matching pixels!')
                         else:
-                            print(f'DEBUG: ✅ Filtering successful - {filtered_stats.sum:.0f} pixels selected')
+                            print(f'DEBUG:  Filtering successful - {filtered_stats.sum:.0f} pixels selected')
                     else:
-                        print('DEBUG: ❌ ERROR: Filtered raster is invalid!')
+                        print('DEBUG:  ERROR: Filtered raster is invalid!')
                 else:
-                    print('DEBUG: ❌ ERROR: Filtered raster file was not created!')
+                    print('DEBUG:  ERROR: Filtered raster file was not created!')
             else:
                 # Original binary masking
                 calc_expression = 'if ( "buffered_mask@1" = 0, "filtered_dsm@1", 0/0 )'
                 print('DEBUG: Using binary masking - masking all detected features')
             
-            # 🔍 CRITICAL DEBUGGING: Comprehensive masking diagnostics
-            print(f'DEBUG: 🎯 Masking expression: {calc_expression}')
-            print(f'DEBUG: 🎯 DSM layer valid: {dsm_layer_for_calc.isValid()}')
-            print(f'DEBUG: 🔍 Mask layer valid: {anthropogenic_layer_for_calc.isValid()}')
+            #  CRITICAL DEBUGGING: Comprehensive masking diagnostics
+            print(f'DEBUG:  Masking expression: {calc_expression}')
+            print(f'DEBUG:  DSM layer valid: {dsm_layer_for_calc.isValid()}')
+            print(f'DEBUG:  Mask layer valid: {anthropogenic_layer_for_calc.isValid()}')
 
-            # 🔍 Check mask content before applying
+            #  Check mask content before applying
             try:
                 if anthropogenic_layer_for_calc and anthropogenic_layer_for_calc.isValid():
                     provider = anthropogenic_layer_for_calc.dataProvider()
                     stats = provider.bandStatistics(1, QgsRasterBandStats.All)
-                    print(f'DEBUG: 🔍 Mask statistics - Min: {stats.minimumValue}, Max: {stats.maximumValue}, Mean: {stats.mean:.3f}')
-                    print(f'DEBUG: 📊 Mask valid pixels: {stats.elementCount:,}')
+                    print(f'DEBUG:  Mask statistics - Min: {stats.minimumValue}, Max: {stats.maximumValue}, Mean: {stats.mean:.3f}')
+                    print(f'DEBUG:  Mask valid pixels: {stats.elementCount:,}')
                     
                     # Critical check: If mask is all zeros, no masking will occur!
                     if stats.maximumValue == 0:
-                        print('DEBUG: ❌ CRITICAL ERROR: Mask contains only 0 values - NO MASKING WILL OCCUR!')
-                        print('DEBUG: ❌ This means no anthropogenic features were detected in buffering!')
+                        print('DEBUG:  CRITICAL ERROR: Mask contains only 0 values - NO MASKING WILL OCCUR!')
+                        print('DEBUG:  This means no anthropogenic features were detected in buffering!')
                     elif stats.minimumValue == stats.maximumValue == 1:
-                        print('DEBUG: ❌ CRITICAL ERROR: Mask contains only 1 values - ENTIRE DSM WILL BE MASKED!')
+                        print('DEBUG:  CRITICAL ERROR: Mask contains only 1 values - ENTIRE DSM WILL BE MASKED!')
                     else:
                         masked_pixels = int(stats.mean * stats.elementCount)
                         masking_percentage = (masked_pixels / stats.elementCount) * 100
-                        print(f'DEBUG: ✅ Mask OK: ~{masking_percentage:.1f}% of pixels will be masked')
+                        print(f'DEBUG:  Mask OK: ~{masking_percentage:.1f}% of pixels will be masked')
                         
                 else:
-                    print('DEBUG: ❌ CRITICAL ERROR: Mask layer is invalid!')
+                    print('DEBUG:  CRITICAL ERROR: Mask layer is invalid!')
                     
             except Exception as mask_debug_error:
-                print(f'DEBUG: ⚠️ Could not analyze mask: {str(mask_debug_error)}')
+                print(f'DEBUG:  Could not analyze mask: {str(mask_debug_error)}')
             
             entries = []
             from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
@@ -2812,7 +2800,7 @@ Target smoothing window: ~{target_smoothing_distance}m
             mask_entry.bandNumber = 1
             entries.append(mask_entry)
 
-            print('DEBUG: 🔍 Starting raster calculator operation...')
+            print('DEBUG:  Starting raster calculator operation...')
             calc = QgsRasterCalculator(
                 calc_expression,
                 masked_dsm_path,
@@ -2824,25 +2812,25 @@ Target smoothing window: ~{target_smoothing_distance}m
             )
             
             result = calc.processCalculation(feedback)
-            print(f'DEBUG: 🔍 Raster calculator result code: {result}')
+            print(f'DEBUG:  Raster calculator result code: {result}')
 
             if result != QgsRasterCalculator.Success:
-                print(f'DEBUG: ❌ CRITICAL ERROR: Masking operation failed with code: {result}')
+                print(f'DEBUG:  CRITICAL ERROR: Masking operation failed with code: {result}')
                 raise Exception(f"Masking operation failed with code: {result}")
             else:
-                print('DEBUG: ✅ Raster calculator completed successfully')
+                print('DEBUG:  Raster calculator completed successfully')
             
             if not os.path.isfile(masked_dsm_path):
-                print(f'DEBUG: ❌ CRITICAL ERROR: Masked DSM file was not created: {masked_dsm_path}')
+                print(f'DEBUG:  CRITICAL ERROR: Masked DSM file was not created: {masked_dsm_path}')
                 raise Exception(f"Masked DSM was not created: {masked_dsm_path}")
             else:
-                # 🔍 CRITICAL: Validate the masked DSM
+                #  CRITICAL: Validate the masked DSM
                 masked_dsm_size = os.path.getsize(masked_dsm_path)
-                print(f'DEBUG: ✅ Masked DSM created: {masked_dsm_size:,} bytes')
+                print(f'DEBUG:  Masked DSM created: {masked_dsm_size:,} bytes')
                 
                 # Compare with original DSM
                 original_dsm_size = os.path.getsize(filtered_dsm_path)
-                print(f'DEBUG: 📊 Original DSM size: {original_dsm_size:,} bytes')
+                print(f'DEBUG:  Original DSM size: {original_dsm_size:,} bytes')
                 
                 # Quick validation of masked DSM content
                 try:
@@ -2859,183 +2847,60 @@ Target smoothing window: ~{target_smoothing_distance}m
                         pixels_removed = original_stats.elementCount - stats.elementCount
                         masking_percentage = (pixels_removed / original_stats.elementCount) * 100
                         
-                        print(f'DEBUG: 🔍 Original DSM - Valid pixels: {original_stats.elementCount:,}')
-                        print(f'DEBUG: 📊 Masked DSM - Valid pixels: {stats.elementCount:,}')
-                        print(f'DEBUG: 🎯 MASKING RESULT: {pixels_removed:,} pixels removed ({masking_percentage:.1f}% of DSM)')
+                        print(f'DEBUG:  Original DSM - Valid pixels: {original_stats.elementCount:,}')
+                        print(f'DEBUG:  Masked DSM - Valid pixels: {stats.elementCount:,}')
+                        print(f'DEBUG:  MASKING RESULT: {pixels_removed:,} pixels removed ({masking_percentage:.1f}% of DSM)')
                         
                         if masking_percentage < 1.0:
-                            print('DEBUG: ⚠️ WARNING: Very few pixels masked - check buffer generation!')
+                            print('DEBUG:  WARNING: Very few pixels masked - check buffer generation!')
                         elif masking_percentage > 90.0:
-                            print('DEBUG: ⚠️ WARNING: Too many pixels masked - check classification thresholds!')
+                            print('DEBUG:  WARNING: Too many pixels masked - check classification thresholds!')
                         else:
-                            print('DEBUG: ✅ Reasonable masking percentage detected')
+                            print('DEBUG:  Reasonable masking percentage detected')
                             
                         # Test a few specific values
-                        print(f'DEBUG: 📊 Masked DSM stats - Min: {stats.minimumValue:.2f}, Max: {stats.maximumValue:.2f}, Mean: {stats.mean:.2f}')
+                        print(f'DEBUG:  Masked DSM stats - Min: {stats.minimumValue:.2f}, Max: {stats.maximumValue:.2f}, Mean: {stats.mean:.2f}')
                         
                         # CRITICAL TEST: Are values actually different?
                         if abs(stats.mean - original_stats.mean) < 0.01 and pixels_removed == 0:
-                            print('DEBUG: ❌ CRITICAL PROBLEM: Masked DSM appears identical to original!')
-                            print('DEBUG: ❌ This suggests masking operation did not work properly!')
+                            print('DEBUG:  CRITICAL PROBLEM: Masked DSM appears identical to original!')
+                            print('DEBUG:  This suggests masking operation did not work properly!')
                         else:
-                            print('DEBUG: ✅ Masked DSM is different from original - masking appears successful')
+                            print('DEBUG:  Masked DSM is different from original - masking appears successful')
                             
                     else:
-                        print('DEBUG: ❌ ERROR: Created masked DSM is invalid!')
+                        print('DEBUG:  ERROR: Created masked DSM is invalid!')
                         
                 except Exception as validation_error:
-                    print(f'DEBUG: ⚠️ Masked DSM validation failed: {str(validation_error)}')
+                    print(f'DEBUG:  Masked DSM validation failed: {str(validation_error)}')
 
             # Step 8: Advanced Interpolation on masked DSM with selected method
             output_dsm = os.path.join(output_dir, 'reconstructed_dsm.tif')
             
             # Determine selected interpolation method from UI
-            interpolation_method = 'tps'  # Default
-            if self.radioTPS.isChecked():
-                interpolation_method = 'tps'
-            elif self.radioIDW.isChecked():
-                interpolation_method = 'idw'
-            elif self.radioEnhanced.isChecked():
+            interpolation_method = 'enhanced'  # Default
+            if self.radioEnhanced.isChecked():
                 interpolation_method = 'enhanced'
             elif self.radioSimple.isChecked():
                 interpolation_method = 'simple'
             
+            print(f'DEBUG: User selected interpolation method: {interpolation_method.upper()}')
+            
             # Update progress with selected method
-            self.update_progress(gaussian_iterations + 9, total_steps, f"🎨 Surface reconstruction using {interpolation_method.upper()}...")
+            self.update_progress(gaussian_iterations + 9, total_steps, f"Surface reconstruction using {interpolation_method.upper()}...")
             
             # Store original method for report (before potential fallbacks change it)
             original_interpolation_method = interpolation_method
             interpolation_success = False
             
             # Apply selected interpolation method with robust fallbacks
-            if interpolation_method == 'tps':
-                # TPS (Thin Plate Spline) interpolation for organic surfaces
-                try:
-                    sample_points_path = os.path.join(output_dir, 'sample_points_for_tps.shp')
-                    
-                    try:
-                        processing.run(
-                            'gdal:pixelstopoints',
-                            {
-                                'INPUT_RASTER': masked_dsm_path,
-                                'RASTER_BAND': 1,
-                                'FIELD_NAME': 'VALUE',
-                                'OUTPUT': sample_points_path
-                            },
-                            feedback=feedback
-                        )
-                        
-                        from qgis.core import QgsVectorLayer
-                        points_layer = QgsVectorLayer(sample_points_path, 'Sample_Points', 'ogr')
-                        if points_layer.isValid() and points_layer.featureCount() > 10:
-                            tps_result = processing.run(
-                                'qgis:thinplatespline',
-                                {
-                                    'POINTS': sample_points_path,
-                                    'Z_FIELD': 'VALUE',
-                                    'EXTENT': dsm_layer_for_calc.extent(),
-                                    'PIXEL_SIZE': scaling_info['pixel_size'],
-                                    'OUTPUT': output_dsm
-                                },
-                                feedback=feedback
-                            )
-                            
-                            if os.path.isfile(output_dsm):
-                                interpolation_success = True
-                                
-                                # Apply gentle Gaussian smoothing to TPS result
-                                smoothed_output = os.path.join(output_dir, 'reconstructed_dsm_smoothed.tif')
-                                try:
-                                    processing.run(
-                                        'sagang:gaussianfilter',
-                                        {
-                                            'INPUT': output_dsm,
-                                            'SIGMA': 0.5,  # Gentle smoothing
-                                            'KERNEL_TYPE': 1,
-                                            'KERNEL_RADIUS': 2,
-                                            'RESULT': smoothed_output
-                                        },
-                                        feedback=feedback
-                                    )
-                                    if os.path.isfile(smoothed_output):
-                                        output_dsm = smoothed_output
-                                except:
-                                    pass
-                            else:
-                                raise Exception("TPS output file not created")
-                        else:
-                            raise Exception("Insufficient points for TPS interpolation")
-                            
-                    except Exception as points_error:
-                        raise Exception("Point creation failed, using fallback")
-                        
-                except Exception as e:
-                    interpolation_method = 'enhanced'  # Auto-fallback to enhanced method
-                    
-            if interpolation_method == 'idw':
-                # IDW (Inverse Distance Weighting) interpolation
-                try:
-                    sample_points_path = os.path.join(output_dir, 'sample_points_for_idw.shp')
-                    
-                    try:
-                        processing.run(
-                            'gdal:pixelstopoints',
-                            {
-                                'INPUT_RASTER': masked_dsm_path,
-                                'RASTER_BAND': 1,
-                                'FIELD_NAME': 'VALUE',
-                                'OUTPUT': sample_points_path
-                            },
-                            feedback=feedback
-                        )
-                        
-                        idw_result = processing.run(
-                            'qgis:idwinterpolation',
-                            {
-                                'INTERPOLATION_DATA': f'{sample_points_path}::~::0::~::VALUE::~::0',
-                                'DISTANCE_COEFFICIENT': 2.0,  # Standard IDW power
-                                'EXTENT': dsm_layer_for_calc.extent(),
-                                'PIXEL_SIZE': scaling_info['pixel_size'],
-                                'OUTPUT': output_dsm
-                            },
-                            feedback=feedback
-                        )
-                        
-                        if os.path.isfile(output_dsm):
-                            interpolation_success = True
-                            
-                            # Apply morphological smoothing to IDW result
-                            smoothed_output = os.path.join(output_dir, 'reconstructed_dsm_morpho_smoothed.tif')
-                            try:
-                                processing.run(
-                                    'sagang:morphologicalfilter',
-                                    {
-                                        'INPUT': output_dsm,
-                                        'KERNEL_TYPE': 1,  # Circle
-                                        'KERNEL_RADIUS': 1,
-                                        'METHOD': 5,  # Closing (fill gaps organically)
-                                        'RESULT': smoothed_output
-                                    },
-                                    feedback=feedback
-                                )
-                                if os.path.isfile(smoothed_output):
-                                    output_dsm = smoothed_output
-                            except:
-                                pass
-                        else:
-                            raise Exception("IDW output file not created")
-                            
-                    except Exception as points_error:
-                        raise Exception("Point creation failed, using fallback")
-                        
-                except Exception as e:
-                    interpolation_method = 'enhanced'  # Auto-fallback to enhanced method
             
             # Enhanced method (can be called directly or as fallback)        
             if interpolation_method == 'enhanced':
                 # Method 3: Enhanced GDAL fillnodata with multiple iterations and smoothing
+                print('DEBUG: Starting Enhanced GDAL fillnodata with multi-stage processing...')
                 try:
-                    print('DEBUG: Trying enhanced GDAL fillnodata with multi-stage processing...')
+                    print('DEBUG: Enhanced GDAL: Stage 1 - Initial fillnodata with large search radius...')
                     
                     # Stage 1: Initial fillnodata with large search radius
                     temp_filled_1 = os.path.join(output_dir, 'temp_filled_stage1.tif')
@@ -3113,8 +2978,9 @@ Target smoothing window: ~{target_smoothing_distance}m
             # Simple method (can be called directly or as final fallback)
             if interpolation_method == 'simple':
                 # Method 4: Simple GDAL fillnodata (original method)
+                print('DEBUG: Starting Simple GDAL fillnodata (original method)...')
                 try:
-                    print('DEBUG: Using simple GDAL fillnodata (original method)...')
+                    print('DEBUG: Simple GDAL: Single-stage fillnodata processing...')
                     final_dsm = processing.run(
                         'gdal:fillnodata',
                         {
@@ -3175,7 +3041,7 @@ Target smoothing window: ~{target_smoothing_distance}m
 
 
             # Load result layers
-            self.update_progress(total_steps, total_steps, "🗂️ Loading result layers into QGIS...")
+            self.update_progress(total_steps, total_steps, " Loading result layers into QGIS...")
             print('DEBUG: Loading result layers into QGIS...')
             
             # 1. ALWAYS load reconstructed DSM (most important)
@@ -3227,7 +3093,7 @@ Target smoothing window: ~{target_smoothing_distance}m
             print(f'DEBUG: Total layers loaded: {layers_loaded}')
             
             # Generate processing report
-            self.update_progress(total_steps, total_steps, "📊 Generating processing report...")
+            self.update_progress(total_steps, total_steps, "Generating processing report...")
             self.generate_processing_report(
                 input_dsm=input_dsm,
                 output_dir=output_dir,
@@ -3254,17 +3120,17 @@ Target smoothing window: ~{target_smoothing_distance}m
             )
             
             # Organize output files for better structure
-            self.update_progress(total_steps, total_steps, "🗂️ Organizing output files...")
+            self.update_progress(total_steps, total_steps, "Organizing output files...")
             self.organize_output_files(output_dir)
             
             # Set progress bar to 100%
-            self.update_progress(total_steps, total_steps, "✅ Processing completed successfully!")
+            self.update_progress(total_steps, total_steps, "Processing completed successfully!")
             QMessageBox.information(self, 'Finished', 'Reconstruction completed!')
         except Exception as e:
             print('DEBUG: Error:', str(e))
             # Reset progress on error
             if hasattr(self, 'labelProgressStatus'):
-                self.labelProgressStatus.setText("❌ Processing failed - see error message")
+                self.labelProgressStatus.setText("Processing failed - see error message")
             QMessageBox.critical(self, 'Error', f'Error during processing: {str(e)}')
 
 
