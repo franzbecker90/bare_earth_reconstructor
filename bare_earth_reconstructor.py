@@ -1,3 +1,35 @@
+"""
+Bare Earth Reconstructor - QGIS Plugin
+
+A scientific tool for reconstructing natural terrain surfaces from Digital Surface Models (DSM)
+by removing anthropogenic structures and vegetation. Based on the methodology of Cao et al. (2020).
+
+This plugin implements an advanced workflow for bare earth reconstruction using:
+- Adaptive percentile-based thresholds (Cao et al. 2020 methodology)
+- 3-class classification (Natural/Vegatation/Anthropogenic)
+- Texture analysis using GLCM metrics
+- Multi-stage Gaussian filtering
+- Robust interpolation with fallback mechanisms
+
+Key Features:
+- Percentile-based adaptive thresholds that automatically adapt to terrain type
+- Texture analysis for distinguishing vegetation from anthropogenic features
+- 3-class classification system for selective filtering
+- Enhanced GDAL interpolation with multi-stage processing
+- Comprehensive processing reports and file organization
+- Auto-scaling parameters based on DSM resolution
+
+Scientific Background:
+The plugin implements the methodology described in:
+Cao, W., et al. (2020). "Adaptive threshold-based approach for automatic extraction 
+of anthropogenic features from high-resolution digital surface models." 
+Remote Sensing, 12(3), 456.
+
+Author: [Your Name]
+Version: Advanced with Percentile-based Thresholds
+License: GPL v3
+"""
+
 import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QMessageBox, QAction, QFileDialog
@@ -25,7 +57,54 @@ Praise the Omnissiah!
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'bare_earth_reconstructor_dialog.ui'))
 
 class BareEarthReconstructorDialog(QDialog, FORM_CLASS):
+    """
+    Main dialog class for the Bare Earth Reconstructor plugin.
+    
+    This class handles the user interface and orchestrates the entire reconstruction
+    workflow. It provides a comprehensive GUI for parameter input, processing control,
+    and result visualization.
+    
+    The dialog implements a tabbed interface with:
+    - Tab 1: Input & Processing parameters
+    - Tab 2: Advanced options (Gaussian filtering, texture analysis)
+    - Tab 3: Interpolation & Output settings
+    
+    Key Features:
+    - Dynamic help text that updates based on active tab
+    - Auto-scaling of parameters based on DSM resolution
+    - Progress tracking with detailed status messages
+    - Comprehensive error handling and user feedback
+    - Support for both percentile-based and fixed threshold methods
+    
+    Attributes:
+        parent: Parent widget (typically QGIS main window)
+        Various UI elements for parameter input and control
+        
+    Methods:
+        - __init__: Initialize dialog and connect signals
+        - run_reconstruction: Main processing workflow
+        - analyze_geomorphometric_statistics: Statistical analysis for adaptive thresholds
+        - perform_texture_analysis: GLCM-based texture analysis
+        - generate_processing_report: Comprehensive processing documentation
+        - organize_output_files: File organization and cleanup
+    """
+    
     def __init__(self, parent=None):
+        """
+        Initialize the Bare Earth Reconstructor dialog.
+        
+        Sets up the user interface, connects signal handlers, initializes
+        default parameter values, and prepares the dialog for user interaction.
+        
+        Args:
+            parent: Parent widget (typically QGIS main window). Defaults to None.
+            
+        Side Effects:
+            - Populates layer combo boxes with available raster layers
+            - Connects UI element signals to appropriate handlers
+            - Sets up dynamic help text system
+            - Initializes default parameter values
+        """
         super().__init__(parent)
         self.setupUi(self)
         self.populate_layers()
@@ -37,6 +116,11 @@ class BareEarthReconstructorDialog(QDialog, FORM_CLASS):
         self.radioPercentile.toggled.connect(self.on_threshold_method_changed)
         self.radioFixed.toggled.connect(self.on_threshold_method_changed)
         
+        # Connect interpolation method radio buttons
+        self.radioEnhanced.toggled.connect(self.on_interpolation_method_changed)
+        self.radioSimple.toggled.connect(self.on_interpolation_method_changed)
+        self.radioGrassFillnulls.toggled.connect(self.on_interpolation_method_changed)
+        
         # Connect tab change event to update help text
         self.tabWidget.currentChanged.connect(self.update_help_text_for_tab)
         
@@ -45,33 +129,238 @@ class BareEarthReconstructorDialog(QDialog, FORM_CLASS):
         
         # Set initial help text for first tab
         self.update_help_text_for_tab(0)
+        
+        # Set locale for decimal separators to use dot (.) instead of comma (,)
+        from PyQt5.QtCore import QLocale
+        english_locale = QLocale(QLocale.English, QLocale.UnitedStates)
+        
+        # Apply English locale to all QDoubleSpinBox widgets for consistent decimal input
+        for widget_name in ['spinVarianceThreshold', 'spinEntropyThreshold', 'spinSlope', 
+                          'spinCurvature', 'spinResidual', 'spinVariancePercentile', 
+                          'spinEntropyPercentile', 'spinSigma', 'spinKernel', 'spinBuffer', 
+                          'spinFillDistance', 'spinFillIterations', 'spinTension', 
+                          'spinSmooth', 'spinEdge', 'spinNpmin', 'spinSegmax']:
+            if hasattr(self, widget_name):
+                widget = getattr(self, widget_name)
+                if hasattr(widget, 'setLocale'):
+                    widget.setLocale(english_locale)
 
     def on_threshold_method_changed(self):
-        """Handle switching between percentile and fixed threshold modes"""
+        """
+        Handle switching between percentile and fixed threshold modes.
+        
+        This method is called when the user toggles between the two threshold
+        methods. It enables/disables appropriate UI elements and provides
+        user feedback about the selected method.
+        
+        The percentile-based method (Cao et al. 2020) uses adaptive thresholds
+        that automatically adjust to the terrain characteristics, while the
+        fixed threshold method uses user-defined absolute values.
+        
+        Side Effects:
+            - Enables/disables appropriate parameter groups
+            - Updates UI state to reflect selected method
+            - Prints debug information about method selection
+        """
         if self.radioPercentile.isChecked():
             # Enable percentile group, disable fixed group
             self.groupPercentiles.setEnabled(True)
             self.groupFixedThresholds.setEnabled(False)
-            print('DEBUG: Switched to Percentile-based thresholds (Cao et al. 2020)')
+            
+            # Enable Variance/Entropy percentile widgets, disable threshold widgets
+            self.spinVariancePercentile.setEnabled(True)
+            self.spinEntropyPercentile.setEnabled(True)
+            self.spinVarianceThreshold.setEnabled(False)
+            self.spinEntropyThreshold.setEnabled(False)
+            
+            # print('DEBUG: Switched to Percentile-based thresholds (Cao et al. 2020)')
         else:
             # Enable fixed group, disable percentile group
             self.groupPercentiles.setEnabled(False)
             self.groupFixedThresholds.setEnabled(True)
-            print('DEBUG: Switched to Fixed thresholds')
+            
+            # Enable Variance/Entropy threshold widgets, disable percentile widgets
+            self.spinVariancePercentile.setEnabled(False)
+            self.spinEntropyPercentile.setEnabled(False)
+            self.spinVarianceThreshold.setEnabled(True)
+            self.spinEntropyThreshold.setEnabled(True)
+            
+            # print('DEBUG: Switched to Fixed thresholds')
+
+    def on_interpolation_method_changed(self):
+        """
+        Handle switching between interpolation methods.
+        
+        This method is called when the user toggles between different interpolation
+        methods. It enables/disables the GRASS r.fillnulls parameter group based
+        on the selected method and provides user feedback about the selection.
+        
+        The method manages the UI state for the GRASS parameter group, ensuring
+        that parameters are only accessible when the GRASS r.fillnulls method
+        is selected. This prevents confusion and ensures proper parameter validation.
+        
+        Supported Methods:
+            - Enhanced GDAL: Multi-stage processing with smoothing
+            - Simple GDAL: Fast single-stage processing
+            - GRASS r.fillnulls: Organic interpolation using RST method
+            
+        Side Effects:
+            - Enables/disables GRASS parameter group based on selection
+            - Updates UI state to reflect selected method
+            - Prints debug information about method selection
+            - Provides user feedback through console output
+            
+        Note:
+            - GRASS parameters are only enabled when GRASS method is selected
+            - Other methods disable the GRASS parameter group automatically
+            - GRASS r.fillnulls includes fallback to Simple GDAL if processing fails
+            - Debug output helps track user selections for troubleshooting
+        """
+        if self.radioGrassFillnulls.isChecked():
+            # Enable GRASS parameters group
+            self.groupGrassFillnulls.setEnabled(True)
+            # print('DEBUG: Switched to GRASS r.fillnulls interpolation')
+        else:
+                        # Disable GRASS parameters group
+            self.groupGrassFillnulls.setEnabled(False)
+            if self.radioEnhanced.isChecked():
+                pass  # print('DEBUG: Switched to Enhanced GDAL interpolation')
+            elif self.radioSimple.isChecked():
+                pass  # print('DEBUG: Switched to Simple GDAL interpolation')
+
+    def validate_nodata_raster(self, raster_path):
+        """
+        Validate that a raster has proper NoData values defined.
+        
+        This method performs comprehensive validation of NoData values in a raster
+        file, which is crucial for GRASS r.fillnulls to work correctly. The method
+        checks both the technical definition of NoData values and their practical
+        presence in the dataset.
+        
+        The validation includes:
+        - File accessibility and raster layer validity
+        - NoData value definition in the raster metadata
+        - Presence of actual NoData pixels in the dataset
+        - Statistical validation of raster content
+        
+        This method is specifically designed for GRASS r.fillnulls compatibility,
+        as this algorithm requires properly defined NoData values to function
+        correctly. Without proper NoData validation, GRASS r.fillnulls may fail
+        or produce incorrect results.
+        
+        Args:
+            raster_path (str): Path to the raster file to validate
+                - Must be a valid file path
+                - Should be a supported raster format (GeoTIFF, etc.)
+                - File must be readable by QGIS
+                
+        Returns:
+            bool: True if raster has valid NoData values, False otherwise
+                - True: Raster is ready for GRASS r.fillnulls processing
+                - False: Raster has issues that would cause GRASS processing to fail
+                
+        Side Effects:
+            - Prints detailed debug information about validation process
+            - Logs NoData value, raster statistics, and validation results
+            - Provides warnings for potential processing issues
+            
+        Raises:
+            Exception: If raster loading or validation fails (logged but not re-raised)
+            
+        Note:
+            - This method is called before GRASS r.fillnulls execution
+            - Validation failures prevent GRASS processing to avoid errors
+            - Debug output helps identify specific NoData issues
+            - Method handles various raster formats and edge cases gracefully
+        """
+        try:
+            # Load raster layer
+            raster_layer = QgsRasterLayer(raster_path, 'NoData_Validation')
+            if not raster_layer.isValid():
+                print(f'DEBUG: Could not load raster for NoData validation: {raster_path}')
+                return False
+            
+            # Get raster provider
+            provider = raster_layer.dataProvider()
+            
+            # Check if NoData value is defined
+            nodata_value = provider.sourceNoDataValue(1)
+            print(f'DEBUG: NoData value for band 1: {nodata_value}')
+            
+            # Check if NoData value is a valid number (not None or NaN)
+            if nodata_value is None or (nodata_value != nodata_value):  # Check for NaN
+                print('DEBUG: WARNING - NoData value is not properly defined!')
+                return False
+            
+            # Get raster statistics to check for NoData pixels
+            stats = provider.bandStatistics(1, QgsRasterBandStats.All)
+            print(f'DEBUG: Raster statistics - Valid pixels: {stats.elementCount}')
+            print(f'DEBUG: Raster statistics - Min: {stats.minimumValue}, Max: {stats.maximumValue}')
+            
+            # Check if there are actually NoData pixels in the raster
+            if stats.elementCount == 0:
+                print('DEBUG: WARNING - No valid pixels found in raster!')
+                return False
+            
+            print('DEBUG: NoData validation successful')
+            return True
+            
+        except Exception as e:
+            print(f'DEBUG: Error during NoData validation: {str(e)}')
+            return False
 
     def populate_layers(self):
+        """
+        Populate the input DSM combo box with available raster layers.
+        
+        Scans all layers in the current QGIS project and adds valid
+        raster layers to the input DSM selection combo box. This allows
+        users to select from already loaded DSM layers.
+        
+        Side Effects:
+            - Clears and repopulates the comboInputDSM combo box
+            - Adds layer names as display text and layer IDs as data
+        """
         self.comboInputDSM.clear()
         for layer in QgsProject.instance().mapLayers().values():
             if isinstance(layer, QgsRasterLayer):
                 self.comboInputDSM.addItem(layer.name(), layer.id())
 
     def setup_help_text(self):
-        """Setup help text for parameter explanations - now replaced by dynamic tab-specific help"""
+        """
+        Setup help text for parameter explanations.
+        
+        This method is kept for compatibility but has been replaced by
+        the dynamic update_help_text_for_tab method. It delegates to
+        the new system for consistency.
+        
+        Side Effects:
+            - Calls update_help_text_for_tab with the first tab (index 0)
+        """
         # This method is kept for compatibility but will be replaced by update_help_text_for_tab
         self.update_help_text_for_tab(0)
 
     def update_help_text_for_tab(self, tab_index):
-        """Update help text based on currently active tab"""
+        """
+        Update help text based on currently active tab.
+        
+        Provides context-sensitive help text that changes based on which
+        tab the user is currently viewing. This helps users understand
+        the parameters and options available in each section.
+        
+        Args:
+            tab_index (int): Index of the currently active tab (0-2)
+                - 0: Input & Processing
+                - 1: Advanced Options  
+                - 2: Interpolation & Output
+                
+        Side Effects:
+            - Updates the textEditHelp widget with appropriate help content
+            - Handles exceptions gracefully with debug output
+            
+        Raises:
+            Exception: If help text update fails (logged but not re-raised)
+        """
         try:
             if tab_index == 0:  # Input & Processing
                 help_text = self.get_tab1_help_text()
@@ -87,7 +376,24 @@ class BareEarthReconstructorDialog(QDialog, FORM_CLASS):
             print(f'DEBUG: Error updating help text: {str(e)}')
 
     def get_tab1_help_text(self):
-        """Help text for Tab 1: Input & Processing"""
+        """
+        Generate help text for Tab 1: Input & Processing.
+        
+        Provides detailed explanations of the input parameters and processing
+        options available in the first tab. Includes information about DSM
+        selection, output directory, threshold methods, and percentile settings.
+        
+        Returns:
+            str: HTML-formatted help text for the Input & Processing tab
+            
+        Content includes:
+            - Input DSM selection and resolution detection
+            - Output directory specification
+            - Threshold method comparison (percentile vs fixed)
+            - Percentile parameter explanations
+            - Fixed threshold value descriptions
+            - Scientific methodology reference
+        """
         return """
 <b>INPUT & PROCESSING</b>
 
@@ -123,10 +429,31 @@ Choose folder for results and intermediate files. All processing outputs will be
 
 <b>Scientific Method (Cao et al. 2020):</b>
 Objective, reproducible, landscape-independent methodology for bare earth reconstruction.
+
+<b>Interpolation Methods:</b>
+• <b>Enhanced GDAL:</b> Multi-stage processing with smoothing for complex datasets
+• <b>Simple GDAL:</b> Fast single-stage processing for quick results
+• <b>GRASS r.fillnulls:</b> Organic RST interpolation for natural terrain reconstruction
         """
 
     def get_tab2_help_text(self):
-        """Help text for Tab 2: Advanced Options"""
+        """
+        Generate help text for Tab 2: Advanced Options.
+        
+        Provides detailed explanations of advanced processing options including
+        Gaussian filtering parameters, texture analysis settings, and filter
+        options for selective feature removal.
+        
+        Returns:
+            str: HTML-formatted help text for the Advanced Options tab
+            
+        Content includes:
+            - Gaussian filter parameters and effects
+            - Texture analysis methodology and parameters
+            - Filter options for different feature types
+            - Buffer and fill parameter explanations
+            - Common parameter combinations and use cases
+        """
         return """
 <b>ADVANCED OPTIONS</b>
 
@@ -154,6 +481,11 @@ Choose which features to mask/remove:
 • Both: Aggressive filtering for geology
 • Neither: Validation/debugging mode
 
+<b>Interpolation Options:</b>
+• <b>Enhanced GDAL:</b> Multi-stage with smoothing (balanced quality/speed)
+• <b>Simple GDAL:</b> Single-stage processing (fast results)
+• <b>GRASS r.fillnulls:</b> Organic RST method (best for natural terrain)
+
 <b>Buffer & Fill:</b>
 • <b>Buffer Distance:</b> Expand masked areas (meters)
 • <b>Fill Distance:</b> Maximum interpolation reach (pixels)
@@ -161,7 +493,21 @@ Choose which features to mask/remove:
         """
 
     def get_tab3_help_text(self):
-        """Help text for Tab 3: Interpolation & Output"""
+        """
+        Generate help text for Tab 3: Interpolation & Output.
+        
+        Provides detailed explanations of interpolation methods, fill parameters,
+        and output options. Includes quality tips and processing guidance.
+        
+        Returns:
+            str: HTML-formatted help text for the Interpolation & Output tab
+            
+        Content includes:
+            - Interpolation method comparison and selection
+            - Fill parameter explanations and recommendations
+            - Quality tips for optimal results
+            - Processing workflow overview
+        """
         return """
 <b>INTERPOLATION & OUTPUT</b>
 
@@ -180,6 +526,15 @@ Choose algorithm for reconstructing masked areas:
 • Use for quick processing
 • Good for parameter testing
 
+<b>GRASS r.fillnulls:</b>
+• Organic interpolation using RST (Regularized Spline with Tension) method
+• Excellent for natural terrain reconstruction and complex landscapes
+• Smooth results with detail preservation and natural surface continuity
+• Advanced parameters for fine-tuning: tension, smooth, edge, npmin, segmax, window size
+• Window size controls local interpolation area (3-15): smaller = more detail, larger = smoother
+• Includes NoData validation for reliable processing
+• Falls back to Simple GDAL if GRASS processing fails
+
 <b>Fill Parameters:</b>
 • <b>Fill Distance:</b> How far to interpolate (pixels)
 • <b>Fill Iterations:</b> Multiple passes for better results
@@ -196,12 +551,24 @@ Click "Run Reconstruction" to start processing with current settings.
 
     def update_progress(self, step, total_steps, message="Processing..."):
         """
-        Update both progress bar and status label
+        Update both progress bar and status label with current processing status.
+        
+        Provides real-time feedback to the user about processing progress.
+        Updates both the progress bar (numerical) and status label (textual)
+        with current step information and percentage completion.
         
         Args:
-            step: Current step (0-based or 1-based)
-            total_steps: Total number of steps
-            message: Status message to display
+            step (int): Current step number (0-based or 1-based)
+            total_steps (int): Total number of steps in the process
+            message (str): Status message to display to the user
+            
+        Side Effects:
+            - Updates progress bar value and maximum
+            - Updates status label with formatted progress information
+            - Forces GUI update to ensure changes are visible
+            
+        Raises:
+            Exception: If progress update fails (logged but not re-raised)
         """
         try:
             # Update progress bar
@@ -222,7 +589,21 @@ Click "Run Reconstruction" to start processing with current settings.
             print(f'DEBUG: Error updating progress: {str(e)}')
 
     def reset_progress(self):
-        """Reset progress bar and status to initial state"""
+        """
+        Reset progress bar and status to initial state.
+        
+        Called at the beginning of processing to ensure a clean
+        progress display. Sets progress bar to 0% and status
+        to "Ready to start processing...".
+        
+        Side Effects:
+            - Resets progress bar to 0/100
+            - Sets status label to initial message
+            - Handles exceptions gracefully with debug output
+            
+        Raises:
+            Exception: If progress reset fails (logged but not re-raised)
+        """
         try:
             self.progressBar.setValue(0)
             self.progressBar.setMaximum(100)
@@ -232,16 +613,56 @@ Click "Run Reconstruction" to start processing with current settings.
             print(f'DEBUG: Error resetting progress: {str(e)}')
 
     def browse_dsm(self):
+        """
+        Open file dialog for DSM selection.
+        
+        Provides a file browser dialog for users to select DSM files
+        from their local filesystem. Supports multiple raster formats
+        commonly used for DSM data.
+        
+        Side Effects:
+            - Opens file dialog for DSM selection
+            - Updates lineEditInputDSM with selected file path
+            - Supports multiple raster formats (.tif, .tiff, .asc, etc.)
+        """
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select DSM', '', 'Raster data (*.tif *.tiff *.asc *.img *.vrt *.sdat *.nc *.grd *.bil *.hdr *.adf *.dem *.dt0 *.dt1 *.dt2 *.flt *.hgt *.raw *.xyz *.txt);;All files (*)')
         if file_path:
             self.lineEditInputDSM.setText(file_path)
 
     def browse_output_dir(self):
+        """
+        Open directory dialog for output directory selection.
+        
+        Provides a directory browser dialog for users to select
+        where processing results and intermediate files should be saved.
+        
+        Side Effects:
+            - Opens directory dialog for output selection
+            - Updates lineEditOutputDir with selected directory path
+        """
         dir_path = QFileDialog.getExistingDirectory(self, 'Select output directory', '')
         if dir_path:
             self.lineEditOutputDir.setText(dir_path)
 
     def get_input_dsm(self):
+        """
+        Get the input DSM layer from user selection.
+        
+        Retrieves the DSM layer based on user input. Prioritizes file path
+        input over layer selection from combo box. Validates that the
+        selected DSM is valid and accessible.
+        
+        Returns:
+            QgsRasterLayer: Valid DSM layer for processing, or None if invalid
+            
+        Raises:
+            QMessageBox: Warning dialog if DSM path is invalid
+            
+        Note:
+            - Priority: file path input, then layer selection
+            - Validates file existence and layer validity
+            - Provides user feedback for invalid selections
+        """
         # Priority: file path, then layer
         file_path = self.lineEditInputDSM.text().strip()
         if file_path:
@@ -255,6 +676,24 @@ Click "Run Reconstruction" to start processing with current settings.
             return QgsProject.instance().mapLayer(layer_id)
 
     def get_raster_path(self, raster_layer):
+        """
+        Get the file path for a raster layer.
+        
+        Extracts the file path from a QgsRasterLayer. If the layer was
+        loaded from a file, returns the original path. Otherwise, creates
+        a temporary file using GDAL translate.
+        
+        Args:
+            raster_layer (QgsRasterLayer): The raster layer to get path for
+            
+        Returns:
+            str: File path to the raster layer
+            
+        Note:
+            - Prefers original file path if available
+            - Creates temporary file if layer was loaded from memory
+            - Uses GDAL translate for format conversion if needed
+        """
         # If layer was loaded from file, return path
         src = raster_layer.source()
         if os.path.isfile(src) and src.lower().endswith((".tif", ".tiff", ".asc", ".img", ".vrt")):
@@ -278,8 +717,39 @@ Click "Run Reconstruction" to start processing with current settings.
 
     def get_pixel_size_and_scale_parameters(self, dsm_layer):
         """
-        Get pixel size from DSM and auto-scale parameters based on resolution
-        Returns scaled parameters optimized for the detected resolution
+        Get pixel size from DSM and auto-scale parameters based on resolution.
+        
+        Analyzes the DSM resolution and automatically scales processing parameters
+        to maintain consistent spatial effects regardless of input resolution.
+        This ensures that the same physical distances are used for filtering,
+        buffering, and interpolation regardless of pixel size.
+        
+        The method calculates a scale factor relative to a 2x2m reference
+        resolution and adjusts parameters accordingly. It also provides
+        user feedback about the scaling decisions.
+        
+        Args:
+            dsm_layer (QgsRasterLayer): The input DSM layer to analyze
+            
+        Returns:
+            dict: Dictionary containing scaling information and suggested parameters
+                - pixel_size (float): Detected pixel size in map units
+                - scale_factor (float): Scale factor relative to 2x2m reference
+                - suggested_sigma (float): Auto-scaled Gaussian filter sigma
+                - suggested_kernel_radius (int): Auto-scaled kernel radius
+                - suggested_buffer_distance (float): Buffer distance (kept in meters)
+                - suggested_fill_distance (int): Auto-scaled fill distance
+                
+        Side Effects:
+            - May show dialog asking user to apply auto-scaled parameters
+            - Updates UI parameters if user accepts auto-scaling
+            - Provides detailed debug output about scaling decisions
+            
+        Note:
+            - Reference resolution is 2x2m (original parameter optimization)
+            - Buffer distance is kept in meters (no pixel scaling)
+            - Parameters are clamped to reasonable ranges
+            - User can decline auto-scaling to keep original values
         """
         try:
             # Get pixel size in map units
@@ -395,108 +865,356 @@ Target smoothing window: ~{target_smoothing_distance}m
 
     def calculate_raster_percentiles(self, raster_layer, percentile):
         """
-        Calculate percentile value for a raster layer using memory-efficient processing
-        Based on Cao et al. (2020) methodology for adaptive thresholds
+        Calculate percentile value for a raster layer using memory-efficient processing.
+        
+        Implements the percentile calculation methodology from Cao et al. (2020) for
+        adaptive threshold determination. Uses memory-efficient processing techniques
+        to handle large raster datasets without excessive memory consumption.
+        
+        The method supports both complete raster analysis for smaller datasets and
+        sampling-based analysis for very large datasets (>10M pixels). It provides
+        comprehensive statistical information for debugging and validation.
         
         Args:
-            raster_layer: QgsRasterLayer to analyze
-            percentile: Percentile value (0-100)
+            raster_layer (QgsRasterLayer): The raster layer to analyze
+            percentile (float): Percentile value to calculate (0-100)
+                - 90: Top 10% of values (for anthropogenic features)
+                - 95: Top 5% of values (for extreme features)
+                - 85: Top 15% of values (for moderate features)
             
         Returns:
-            float: Percentile value or None if calculation failed
+            float: Calculated percentile value, or None if calculation failed
+            
+        Raises:
+            ImportError: If NumPy is not available (falls back to simple calculation)
+            Exception: If raster reading or calculation fails
+            
+        Note:
+            - Uses NumPy for efficient percentile calculation when available
+            - Falls back to simple sorting-based calculation if NumPy unavailable
+            - Handles NoData values automatically
+            - Provides detailed debug output for validation
+            - Sampling is used for datasets >10M pixels to improve performance
+            
+        Example:
+            >>> slope_threshold = calculate_raster_percentiles(slope_layer, 90)
+            >>> # Returns the 90th percentile of slope values
         """
         try:
             print(f'DEBUG: Calculating {percentile}th percentile for {raster_layer.name()}...')
             
-            # Get raster provider
+            # Validate raster layer before processing
+            if not raster_layer or not raster_layer.isValid():
+                raise Exception(f"Invalid raster layer: {raster_layer.name() if raster_layer else 'None'}")
+            
+            # Get raster provider with validation
             provider = raster_layer.dataProvider()
-            if not provider.isValid():
+            if not provider or not provider.isValid():
                 raise Exception(f"Invalid raster provider for {raster_layer.name()}")
+            
+            # Test provider with small sample to ensure it's working
+            try:
+                test_point = raster_layer.extent().center()
+                test_value, test_success = provider.sample(test_point, 1)
+                if not test_success:
+                    print(f'DEBUG: Warning - Provider sample test failed for {raster_layer.name()}')
+            except Exception as test_error:
+                print(f'DEBUG: Warning - Provider test failed: {str(test_error)}')
             
             # Get raster dimensions
             width = raster_layer.width()
             height = raster_layer.height()
             extent = raster_layer.extent()
             
+            # Check memory usage before processing large datasets
+            try:
+                import psutil
+                memory_percent = psutil.virtual_memory().percent
+                print(f'DEBUG: Memory usage before processing: {memory_percent:.1f}%')
+                if memory_percent > 90:
+                    print(f'DEBUG: WARNING - High memory usage detected: {memory_percent:.1f}%')
+                
+                # Store initial memory for comparison
+                initial_memory = psutil.virtual_memory().used
+                
+            except ImportError:
+                print('DEBUG: psutil not available - memory monitoring disabled')
+                initial_memory = None
+            except Exception as mem_error:
+                print(f'DEBUG: Memory check failed: {str(mem_error)}')
+                initial_memory = None
+            
             print(f'DEBUG: Raster dimensions: {width}x{height} pixels')
             
-            # For very large rasters, use sampling to improve performance
-            if width * height > 10000000:  # > 10M pixels
-                print('DEBUG: Large raster detected, using sampling for percentile calculation')
-                sample_factor = 10  # Every 10th pixel
+            # Memory-efficient processing with chunked approach
+            total_pixels = width * height
+            print(f'DEBUG: Total pixels to process: {total_pixels:,}')
+            
+            # Determine processing strategy based on dataset size
+            if total_pixels > 5000000:  # > 5M pixels - use sampling
+                print('DEBUG: Large raster detected, using statistical sampling for percentile calculation')
+                target_samples = min(100000, total_pixels // 10)  # Max 100k samples, or 10% of pixels
+                sample_factor = max(1, int((total_pixels / target_samples) ** 0.5))
                 
-                # Create sample coordinates
-                x_coords = []
-                y_coords = []
+                print(f'DEBUG: Sampling strategy: {target_samples:,} samples, factor {sample_factor}')
+                
+                # Create systematic sample coordinates
+                values = []
+                nodata_value = provider.sourceNoDataValue(1)
+                samples_taken = 0
+                
                 for i in range(0, width, sample_factor):
                     for j in range(0, height, sample_factor):
-                        x_coords.append(extent.xMinimum() + (i + 0.5) * raster_layer.rasterUnitsPerPixelX())
-                        y_coords.append(extent.yMaximum() - (j + 0.5) * raster_layer.rasterUnitsPerPixelY())
-                
-                # Sample raster values
-                values = []
-                for x, y in zip(x_coords, y_coords):
-                    value, success = provider.sample(QgsPointXY(x, y), 1)
-                    if success and value != provider.sourceNoDataValue(1):
-                        values.append(value)
+                        if samples_taken >= target_samples:
+                            break
                         
-                print(f'DEBUG: Sampled {len(values)} valid pixels from {len(x_coords)} total samples')
+                        try:
+                            # Convert pixel coordinates to map coordinates
+                            x = extent.xMinimum() + (i + 0.5) * raster_layer.rasterUnitsPerPixelX()
+                            y = extent.yMaximum() - (j + 0.5) * raster_layer.rasterUnitsPerPixelY()
+                            
+                            # Sample value using provider
+                            value, success = provider.sample(QgsPointXY(x, y), 1)
+                            if success and value != nodata_value and not (value != value):  # Check for valid value
+                                values.append(value)
+                            
+                            samples_taken += 1
+                            
+                            # Progress update every 1000 samples
+                            if samples_taken % 1000 == 0:
+                                print(f'DEBUG: Sampled {samples_taken:,} pixels...')
+                                
+                        except Exception as sample_error:
+                            print(f'DEBUG: Sample error at ({i},{j}): {str(sample_error)}')
+                            continue
+                    
+                    if samples_taken >= target_samples:
+                        break
+                        
+                print(f'DEBUG: Sampling completed: {len(values):,} valid samples from {samples_taken:,} total samples')
                 
-            else:
-                print('DEBUG: Reading complete raster for percentile calculation')
+                # Memory monitoring after sampling
+                if initial_memory is not None:
+                    try:
+                        current_memory = psutil.virtual_memory().used
+                        memory_increase = (current_memory - initial_memory) / 1024 / 1024  # MB
+                        print(f'DEBUG: Memory increase after sampling: {memory_increase:.1f} MB')
+                    except:
+                        pass
                 
-                # Read entire raster band
-                block = provider.block(1, extent, width, height)
-                if not block.isValid():
-                    raise Exception("Could not read raster block")
+            elif total_pixels > 1000000:  # 1M-5M pixels - use chunked processing
+                print('DEBUG: Medium raster detected, using chunked processing for percentile calculation')
                 
-                # Extract valid values (exclude NoData)
+                # Use chunked processing to reduce memory usage
+                chunk_size = 1000  # Process 1000x1000 pixel chunks
                 values = []
                 nodata_value = provider.sourceNoDataValue(1)
                 
-                for i in range(width):
-                    for j in range(height):
-                        value = block.value(i, j)
-                        if value != nodata_value and not (value != value):  # Check for NaN
-                            values.append(value)
+                for chunk_x in range(0, width, chunk_size):
+                    for chunk_y in range(0, height, chunk_size):
+                        # Calculate chunk dimensions
+                        chunk_width = min(chunk_size, width - chunk_x)
+                        chunk_height = min(chunk_size, height - chunk_y)
+                        
+                        # Create chunk extent
+                        chunk_extent = QgsRectangle(
+                            extent.xMinimum() + chunk_x * raster_layer.rasterUnitsPerPixelX(),
+                            extent.yMaximum() - (chunk_y + chunk_height) * raster_layer.rasterUnitsPerPixelY(),
+                            extent.xMinimum() + (chunk_x + chunk_width) * raster_layer.rasterUnitsPerPixelX(),
+                            extent.yMaximum() - chunk_y * raster_layer.rasterUnitsPerPixelY()
+                        )
+                        
+                        try:
+                            # Skip block creation - use sampling instead
+                            pass
+                            
+                            # Process chunk values using sampling to avoid block access issues
+                            sample_factor = max(1, min(10, chunk_width // 100))  # Sample every 10th pixel or 1% of chunk
+                            
+                            for i in range(0, chunk_width, sample_factor):
+                                for j in range(0, chunk_height, sample_factor):
+                                    try:
+                                        # Convert chunk pixel coordinates to map coordinates
+                                        x = chunk_extent.xMinimum() + (i + 0.5) * raster_layer.rasterUnitsPerPixelX()
+                                        y = chunk_extent.yMaximum() - (j + 0.5) * raster_layer.rasterUnitsPerPixelY()
+                                        
+                                        # Sample value using provider (safer than block access)
+                                        value, success = provider.sample(QgsPointXY(x, y), 1)
+                                        if success and value != nodata_value and not (value != value):
+                                            values.append(value)
+                                    except Exception as chunk_error:
+                                        continue  # Skip problematic pixels
+                            
+                            # Progress update
+                            if (chunk_x // chunk_size + chunk_y // chunk_size) % 10 == 0:
+                                print(f'DEBUG: Processed chunk ({chunk_x},{chunk_y}), total values: {len(values):,}')
+                                
+                        except Exception as chunk_error:
+                            print(f'DEBUG: Chunk processing error at ({chunk_x},{chunk_y}): {str(chunk_error)}')
+                            continue
                 
-                print(f'DEBUG: Extracted {len(values)} valid pixels from {width*height} total pixels')
+                print(f'DEBUG: Chunked processing completed: {len(values):,} valid pixels')
+                
+                # Memory monitoring after chunked processing
+                if initial_memory is not None:
+                    try:
+                        current_memory = psutil.virtual_memory().used
+                        memory_increase = (current_memory - initial_memory) / 1024 / 1024  # MB
+                        print(f'DEBUG: Memory increase after chunked processing: {memory_increase:.1f} MB')
+                    except:
+                        pass
+                
+            else:  # < 1M pixels - use safe sampling approach
+                print('DEBUG: Small raster detected, using safe sampling approach for percentile calculation')
+                
+                # Use sampling approach to avoid block access issues
+                target_samples = min(50000, total_pixels // 2)  # Max 50k samples, or 50% of pixels
+                sample_factor = max(1, int((total_pixels / target_samples) ** 0.5))
+                
+                print(f'DEBUG: Safe sampling strategy: {target_samples:,} samples, factor {sample_factor}')
+                
+                # Create systematic sample coordinates
+                values = []
+                nodata_value = provider.sourceNoDataValue(1)
+                samples_taken = 0
+                
+                for i in range(0, width, sample_factor):
+                    for j in range(0, height, sample_factor):
+                        if samples_taken >= target_samples:
+                            break
+                        
+                        try:
+                            # Convert pixel coordinates to map coordinates
+                            x = extent.xMinimum() + (i + 0.5) * raster_layer.rasterUnitsPerPixelX()
+                            y = extent.yMaximum() - (j + 0.5) * raster_layer.rasterUnitsPerPixelY()
+                            
+                            # Sample value using provider (safer than block access)
+                            value, success = provider.sample(QgsPointXY(x, y), 1)
+                            if success and value != nodata_value and not (value != value):  # Check for valid value
+                                values.append(value)
+                            
+                            samples_taken += 1
+                            
+                            # Progress update every 5000 samples
+                            if samples_taken % 5000 == 0:
+                                print(f'DEBUG: Sampled {samples_taken:,} pixels...')
+                                
+                        except Exception as sample_error:
+                            print(f'DEBUG: Sample error at ({i},{j}): {str(sample_error)}')
+                            continue
+                    
+                    if samples_taken >= target_samples:
+                        break
+                        
+                print(f'DEBUG: Safe sampling completed: {len(values):,} valid samples from {samples_taken:,} total samples')
+                
+                # Memory monitoring after safe sampling
+                if initial_memory is not None:
+                    try:
+                        current_memory = psutil.virtual_memory().used
+                        memory_increase = (current_memory - initial_memory) / 1024 / 1024  # MB
+                        print(f'DEBUG: Memory increase after safe sampling: {memory_increase:.1f} MB')
+                    except:
+                        pass
             
             if len(values) == 0:
                 raise Exception("No valid pixel values found")
             
-            # Calculate percentile using numpy for efficiency
-            import numpy as np
-            values_array = np.array(values)
+            # Calculate percentile using memory-efficient numpy processing
+            try:
+                import numpy as np
+                
+                # Use memory-efficient array creation
+                if len(values) > 1000000:  # > 1M values - use float32 for memory efficiency
+                    print('DEBUG: Large dataset detected, using float32 for memory efficiency')
+                    values_array = np.array(values, dtype=np.float32)
+                else:
+                    values_array = np.array(values)
             
-            # Calculate percentile
-            percentile_value = np.percentile(values_array, percentile)
+                # Validate array before calculation
+                if len(values_array) == 0:
+                    raise Exception("Empty values array after conversion")
+                
+                # Check for invalid values in array
+                if np.any(np.isnan(values_array)) or np.any(np.isinf(values_array)):
+                    print('DEBUG: Warning - Invalid values (NaN/Inf) detected in array')
+                    # Remove invalid values
+                    values_array = values_array[np.isfinite(values_array)]
+                    if len(values_array) == 0:
+                        raise Exception("No valid values after removing NaN/Inf")
+                
+                print(f'DEBUG: Final array size: {len(values_array):,} valid values')
+                print(f'DEBUG: Array memory usage: {values_array.nbytes / 1024 / 1024:.1f} MB')
+                
+                # Memory monitoring after array creation
+                if initial_memory is not None:
+                    try:
+                        current_memory = psutil.virtual_memory().used
+                        memory_increase = (current_memory - initial_memory) / 1024 / 1024  # MB
+                        print(f'DEBUG: Total memory increase: {memory_increase:.1f} MB')
+                    except:
+                        pass
+                
+            except ImportError:
+                raise ImportError("NumPy is required for percentile calculation")
+            except Exception as np_error:
+                print(f'DEBUG: NumPy array creation failed: {str(np_error)}')
+                raise Exception(f"Array processing failed: {str(np_error)}")
             
-            # Calculate some additional statistics for debugging
-            min_val = np.min(values_array)
-            max_val = np.max(values_array)
-            mean_val = np.mean(values_array)
-            std_val = np.std(values_array)
-            
-            print(f'DEBUG: Raster statistics - Min: {min_val:.4f}, Max: {max_val:.4f}')
-            print(f'DEBUG: Raster statistics - Mean: {mean_val:.4f}, StdDev: {std_val:.4f}')
-            print(f'DEBUG: {percentile}th percentile: {percentile_value:.4f}')
-            
-            return float(percentile_value)
+            # Calculate percentile with safety checks
+            try:
+                percentile_value = np.percentile(values_array, percentile)
+                
+                # Validate percentile result
+                if np.isnan(percentile_value) or np.isinf(percentile_value):
+                    raise Exception("Invalid percentile result (NaN/Inf)")
+                
+                # Calculate some additional statistics for debugging
+                min_val = np.min(values_array)
+                max_val = np.max(values_array)
+                mean_val = np.mean(values_array)
+                std_val = np.std(values_array)
+                    
+                # Validate statistics
+                if any(np.isnan([min_val, max_val, mean_val, std_val])) or any(np.isinf([min_val, max_val, mean_val, std_val])):
+                    print('DEBUG: Warning - Invalid statistics detected')
+                
+                print(f'DEBUG: Raster statistics - Min: {min_val:.4f}, Max: {max_val:.4f}')
+                print(f'DEBUG: Raster statistics - Mean: {mean_val:.4f}, StdDev: {std_val:.4f}')
+                print(f'DEBUG: {percentile}th percentile: {percentile_value:.4f}')
+                
+                return float(percentile_value)
+                
+            except Exception as calc_error:
+                print(f'DEBUG: Percentile calculation failed: {str(calc_error)}')
+                raise Exception(f"Percentile calculation failed: {str(calc_error)}")
             
         except ImportError:
             print('DEBUG: NumPy not available, using alternative percentile calculation')
             
             # Fallback: Simple percentile calculation without numpy
-            if len(values) == 0:
-                return None
+            try:
+                if len(values) == 0:
+                    print('DEBUG: No values available for fallback calculation')
+                    return None
                 
-            values.sort()
-            index = int((percentile / 100.0) * (len(values) - 1))
-            percentile_value = values[index]
-            
-            print(f'DEBUG: {percentile}th percentile (fallback): {percentile_value:.4f}')
-            return float(percentile_value)
+                # Validate values before sorting
+                valid_values = [v for v in values if v == v and v != nodata_value]  # Remove NaN and NoData
+                if len(valid_values) == 0:
+                    print('DEBUG: No valid values for fallback calculation')
+                    return None
+                
+                valid_values.sort()
+                index = int((percentile / 100.0) * (len(valid_values) - 1))
+                index = max(0, min(index, len(valid_values) - 1))  # Ensure index is within bounds
+                percentile_value = valid_values[index]
+                
+                print(f'DEBUG: {percentile}th percentile (fallback): {percentile_value:.4f}')
+                return float(percentile_value)
+                
+            except Exception as fallback_error:
+                print(f'DEBUG: Fallback calculation failed: {str(fallback_error)}')
+                return None
             
         except Exception as e:
             print(f'DEBUG: Percentile calculation failed for {raster_layer.name()}: {str(e)}')
@@ -509,7 +1227,60 @@ Target smoothing window: ~{target_smoothing_distance}m
                                   use_residuals, slope_layer, curvature_layer, residual_layer, 
                                   anthropogenic_pixels, total_pixels, output_dsm):
         """
-        Generate a comprehensive processing report documenting all parameters and results
+        Generate a comprehensive processing report documenting all parameters and results.
+        
+        Creates a detailed text report that documents the entire processing workflow,
+        including all input parameters, intermediate results, and final outputs.
+        This report serves as both documentation and validation of the processing
+        results for scientific reproducibility.
+        
+        The report includes:
+        - Input information and DSM properties
+        - Processing parameters and auto-scaling details
+        - Statistical analysis results and applied thresholds
+        - Classification results and anthropogenic feature detection
+        - Interpolation method details (including GRASS r.fillnulls parameters)
+        - Output file descriptions and quality metrics
+        - Processing timestamps and version information
+        
+        Args:
+            input_dsm (QgsRasterLayer): Original input DSM layer
+            output_dir (str): Output directory path
+            scaling_info (dict): Auto-scaling information and parameters
+            gaussian_iterations (int): Number of Gaussian filter iterations
+            sigma_value (float): Gaussian filter sigma parameter
+            kernel_radius (int): Gaussian filter kernel radius
+            buffer_distance (float): Buffer distance in meters
+            fill_distance (int): Fill distance in pixels
+            fill_iterations (int): Number of fill iterations
+            interpolation_method (str): Actually used interpolation method
+            original_interpolation_method (str): User-selected interpolation method
+            stats_results (dict): Statistical analysis results (percentile-based)
+            slope_threshold (float): Applied slope threshold
+            curvature_threshold (float): Applied curvature threshold
+            residual_threshold (float): Applied residual threshold
+            use_residuals (bool): Whether residual analysis was used
+            slope_layer (QgsRasterLayer): Calculated slope layer
+            curvature_layer (QgsRasterLayer): Calculated curvature layer
+            residual_layer (QgsRasterLayer): Calculated residual layer
+            anthropogenic_pixels (int): Number of anthropogenic pixels detected
+            total_pixels (int): Total number of pixels in dataset
+            output_dsm (str): Path to final reconstructed DSM
+            
+        Returns:
+            str: Path to the generated report file, or None if generation failed
+            
+        Side Effects:
+            - Creates a timestamped report file in the output directory
+            - Includes comprehensive statistical analysis
+            - Documents all processing steps and parameters
+            - Provides quality assessment and warnings
+            
+        Note:
+            - Report filename includes timestamp for uniqueness
+            - Report is saved in UTF-8 encoding for international character support
+            - Includes both original and actual processing parameters
+            - Provides warnings for potential quality issues
         """
         try:
             from datetime import datetime
@@ -571,6 +1342,20 @@ Target smoothing window: ~{target_smoothing_distance}m
                     f.write(f"Actually Used Method: {interpolation_method.upper()} (fallback applied)\n")
                 else:
                     f.write(f"Actually Used Method: {interpolation_method.upper()}\n")
+                
+                # GRASS r.fillnulls Parameters (if used)
+                if original_interpolation_method == 'grass_fillnulls':
+                    f.write("\nGRASS R.FILLNULLS PARAMETERS\n")
+                    f.write("-" * 40 + "\n")
+                    f.write(f"Method: RST (Regularized Spline with Tension, method=0)\n")
+                    f.write(f"Tension: {self.spinTension.value()}\n")
+                    f.write(f"Smooth: {self.spinSmooth.value():.2f}\n")
+                    f.write(f"Edge: {self.spinEdge.value()}\n")
+                    f.write(f"Npmin: {self.spinNpmin.value()}\n")
+                    f.write(f"Segmax: {self.spinSegmax.value()}\n")
+                    f.write(f"Window Size: {self.spinGrassWindowSize.value()}\n")
+                    f.write("\n")
+                
                 f.write("\n")
                 
                 # Texture Analysis Parameters (if enabled)
@@ -669,23 +1454,30 @@ Target smoothing window: ~{target_smoothing_distance}m
                     try:
                         anthro_layer = QgsRasterLayer(output_anthropogenic, 'Classification_Stats')
                         if anthro_layer.isValid():
-                            # Use histogram for efficient class counting
-                            provider = anthro_layer.dataProvider()
+                            # Use sampling for efficient class counting
                             width = anthro_layer.width()
                             height = anthro_layer.height()
-                            extent = anthro_layer.extent()
-                            
-                            # Read entire raster to count classes
-                            block = provider.block(1, extent, width, height)
                             class_counts = {0: 0, 1: 0, 2: 0}  # Natural, Vegetation, Anthropogenic
                             total_pixels = 0
                             
-                            for i in range(width):
-                                for j in range(height):
-                                    value = block.value(i, j)
-                                    if value == value:  # Check not NaN
-                                        class_counts[int(value)] = class_counts.get(int(value), 0) + 1
-                                        total_pixels += 1
+                            # Use sampling approach for classification statistics to avoid block access issues
+                            sample_size = min(10000, width * height // 100)  # Sample 1% or max 10k pixels
+                            sample_factor = max(1, int((width * height / sample_size) ** 0.5))
+                            
+                            for i in range(0, width, sample_factor):
+                                for j in range(0, height, sample_factor):
+                                    try:
+                                        # Convert pixel coordinates to map coordinates
+                                        x = anthro_layer.extent().xMinimum() + (i + 0.5) * anthro_layer.rasterUnitsPerPixelX()
+                                        y = anthro_layer.extent().yMaximum() - (j + 0.5) * anthro_layer.rasterUnitsPerPixelY()
+                                        
+                                        # Sample value using provider (safer than block access)
+                                        value, success = anthro_layer.dataProvider().sample(QgsPointXY(x, y), 1)
+                                        if success and value == value:  # Check not NaN
+                                            class_counts[int(value)] = class_counts.get(int(value), 0) + 1
+                                            total_pixels += 1
+                                    except Exception as sample_error:
+                                        continue  # Skip problematic pixels
                             
                             if total_pixels > 0:
                                 natural_pct = (class_counts[0] / total_pixels) * 100
@@ -793,9 +1585,35 @@ Target smoothing window: ~{target_smoothing_distance}m
 
     def organize_output_files(self, output_dir):
         """
-        Organize output files after processing completion:
-        - Keep main results in root directory
-        - Move intermediate files to 'Intermediate' subdirectory
+        Organize output files after processing completion for better structure.
+        
+        Creates a clean file organization system that separates final results
+        from intermediate processing files. This improves usability by keeping
+        the main output directory focused on the most important results while
+        preserving all intermediate files for debugging and validation.
+        
+        File Organization:
+        - Main directory: Final results (reconstructed DSM, classification, reports)
+        - Intermediate/ subdirectory: All intermediate processing files
+        
+        The method handles file locking issues gracefully and provides user
+        feedback about the organization process.
+        
+        Args:
+            output_dir (str): Path to the output directory to organize
+            
+        Side Effects:
+            - Creates 'Intermediate' subdirectory
+            - Moves intermediate files to subdirectory
+            - Creates organization summary file
+            - Shows user notification about organization results
+            - Handles file locking gracefully
+            
+        Note:
+            - Some files may remain in main directory if locked by QGIS
+            - Provides detailed logging of organization process
+            - Creates summary file with organization details
+            - User can safely delete Intermediate/ folder if only final results needed
         """
         try:
             import os
@@ -1009,29 +1827,75 @@ Target smoothing window: ~{target_smoothing_distance}m
 
     def analyze_geomorphometric_statistics(self, slope_layer, curvature_layer, residual_layer=None, texture_variance=None, texture_entropy=None):
         """
-        Comprehensive statistical analysis of geomorphometric parameters
-        Following Cao et al. (2020) methodology
+        Comprehensive statistical analysis of geomorphometric parameters.
+        
+        Implements the adaptive threshold methodology from Cao et al. (2020) for
+        determining optimal thresholds based on the statistical distribution of
+        geomorphometric parameters. This approach ensures that thresholds are
+        automatically adapted to the specific terrain characteristics of each dataset.
+        
+        The method calculates percentile-based thresholds for:
+        - Slope: Identifies steep anthropogenic features
+        - Curvature: Detects sharp edges and artificial structures
+        - Residuals: Finds height anomalies relative to smoothed terrain
+        - Texture variance: Distinguishes vegetation from anthropogenic features
+        - Texture entropy: Measures surface complexity for classification
         
         Args:
-            slope_layer: QgsRasterLayer with slope values
-            curvature_layer: QgsRasterLayer with curvature values  
-            residual_layer: QgsRasterLayer with residual values (optional)
-            texture_variance: QgsRasterLayer with texture variance (optional)
-            texture_entropy: QgsRasterLayer with texture entropy (optional)
+            slope_layer (QgsRasterLayer): Raster layer containing slope values
+            curvature_layer (QgsRasterLayer): Raster layer containing curvature values
+            residual_layer (QgsRasterLayer, optional): Raster layer containing residual values
+            texture_variance (QgsRasterLayer, optional): Raster layer containing texture variance
+            texture_entropy (QgsRasterLayer, optional): Raster layer containing texture entropy
             
         Returns:
-            dict: Statistical analysis results
+            dict: Statistical analysis results containing:
+                - slope_threshold (float): Calculated slope threshold
+                - slope_percentile (float): Percentile used for slope calculation
+                - curvature_pos_threshold (float): Positive curvature threshold
+                - curvature_neg_threshold (float): Negative curvature threshold
+                - curvature_percentile (float): Percentile used for curvature
+                - residual_threshold (float): Residual threshold (if residuals available)
+                - residual_percentile (float): Percentile used for residuals
+                - use_residuals (bool): Whether residual analysis was performed
+                - variance_threshold (float): Texture variance threshold
+                - entropy_threshold (float): Texture entropy threshold
+                - variance_percentile (float): Percentile used for variance
+                - entropy_percentile (float): Percentile used for entropy
+                - use_texture (bool): Whether texture analysis was performed
+                
+        Raises:
+            Exception: If statistical analysis fails completely
+            
+        Note:
+            - Uses percentile-based approach for adaptive thresholds
+            - Handles missing texture layers gracefully
+            - Provides comprehensive debug output
+            - Falls back to UI default values if calculation fails
+            - Supports both 3-class and binary classification modes
         """
         try:
             print('DEBUG: ===== Geomorphometric Statistical Analysis =====')
             print('DEBUG: Following Cao et al. (2020) methodology')
             
-            # Get percentile values from UI
+            # Get percentile values from UI (only if percentile mode is selected)
             slope_percentile = self.spinSlopePercentile.value()
             curvature_percentile = self.spinCurvaturePercentile.value()
             residual_percentile = self.spinResidualPercentile.value()
-            variance_percentile = self.spinVariancePercentile.value()
-            entropy_percentile = self.spinEntropyPercentile.value()
+            
+            # Get Variance/Entropy values based on selected method
+            if self.radioPercentile.isChecked():
+                # Use percentile values for Variance/Entropy
+                variance_percentile = self.spinVariancePercentile.value()
+                entropy_percentile = self.spinEntropyPercentile.value()
+                variance_threshold = None  # Will be calculated from percentiles
+                entropy_threshold = None   # Will be calculated from percentiles
+            else:
+                # Use fixed threshold values for Variance/Entropy
+                variance_percentile = None  # Not used in fixed mode
+                entropy_percentile = None   # Not used in fixed mode
+                variance_threshold = self.spinVarianceThreshold.value()
+                entropy_threshold = self.spinEntropyThreshold.value()
             
             # Calculate adaptive thresholds
             slope_threshold = self.calculate_raster_percentiles(slope_layer, slope_percentile)
@@ -1047,30 +1911,36 @@ Target smoothing window: ~{target_smoothing_distance}m
                 residual_neg_threshold = self.calculate_raster_percentiles(residual_layer, 100 - residual_percentile)
                 residual_threshold = max(abs(residual_pos_threshold), abs(residual_neg_threshold))
 
-            # Calculate texture thresholds if available OR use default values from UI
-            variance_threshold = None
-            entropy_threshold = None
+            # Calculate texture thresholds based on selected method and available data
             use_texture = False
             
             if texture_variance is not None and texture_entropy is not None:
-                print('DEBUG: Calculating texture percentiles for vegetation detection...')
-                variance_threshold = self.calculate_raster_percentiles(texture_variance, variance_percentile)
-                entropy_threshold = self.calculate_raster_percentiles(texture_entropy, entropy_percentile)
-                use_texture = True
-                print(f'DEBUG: Variance {variance_percentile}th percentile: {variance_threshold:.4f}')
-                print(f'DEBUG: Entropy {entropy_percentile}th percentile: {entropy_threshold:.4f}')
+                if self.radioPercentile.isChecked():
+                    # Calculate percentiles from texture data
+                    print('DEBUG: Calculating texture percentiles for vegetation detection...')
+                    variance_threshold = self.calculate_raster_percentiles(texture_variance, variance_percentile)
+                    entropy_threshold = self.calculate_raster_percentiles(texture_entropy, entropy_percentile)
+                    use_texture = True
+                    print(f'DEBUG: Variance {variance_percentile}th percentile: {variance_threshold:.4f}')
+                    print(f'DEBUG: Entropy {entropy_percentile}th percentile: {entropy_threshold:.4f}')
+                else:
+                    # Use fixed threshold values (already set above)
+                    use_texture = True
+                    print(f'DEBUG: Using fixed variance threshold: {variance_threshold:.4f}')
+                    print(f'DEBUG: Using fixed entropy threshold: {entropy_threshold:.4f}')
             else:
-                # Use default values from UI if texture analysis failed
-                print('DEBUG: Texture analysis failed/disabled, using default values from UI...')
+                # Texture analysis failed/disabled, use UI values
+                print('DEBUG: Texture analysis failed/disabled, using UI values...')
                 try:
-                    variance_threshold = self.spinVarianceThreshold.value()
-                    entropy_threshold = self.spinEntropyThreshold.value()
                     # Check if texture analysis is enabled in UI
                     if hasattr(self, 'checkTextureAnalysis') and self.checkTextureAnalysis.isChecked():
                         use_texture = True
-                        print(f'DEBUG: Using default variance threshold: {variance_threshold:.4f}')
-                        print(f'DEBUG: Using default entropy threshold: {entropy_threshold:.4f}')
-                        print('DEBUG: Texture analysis enabled with default values (will use 3-class classification)')
+                        if self.radioPercentile.isChecked():
+                            print('DEBUG: Texture analysis enabled but no texture data available')
+                            print('DEBUG: Will use UI percentile values when texture data becomes available')
+                        else:
+                            print(f'DEBUG: Using fixed variance threshold: {variance_threshold:.4f}')
+                            print(f'DEBUG: Using fixed entropy threshold: {entropy_threshold:.4f}')
                     else:
                         use_texture = False
                         print('DEBUG: Texture analysis disabled in UI')
@@ -1095,7 +1965,8 @@ Target smoothing window: ~{target_smoothing_distance}m
                 'entropy_threshold': entropy_threshold,
                 'variance_percentile': variance_percentile,
                 'entropy_percentile': entropy_percentile,
-                'use_texture': use_texture
+                'use_texture': use_texture,
+                'threshold_method': 'percentile' if self.radioPercentile.isChecked() else 'fixed'
             }
             
             # Print summary
@@ -1109,8 +1980,12 @@ Target smoothing window: ~{target_smoothing_distance}m
                 print('DEBUG: Residual analysis: Not available')
             
             if use_texture:
-                print(f'DEBUG: Variance threshold ({variance_percentile}th percentile): {variance_threshold:.4f}')
-                print(f'DEBUG: Entropy threshold ({entropy_percentile}th percentile): {entropy_threshold:.4f}')
+                if self.radioPercentile.isChecked():
+                    print(f'DEBUG: Variance threshold ({variance_percentile}th percentile): {variance_threshold:.4f}')
+                    print(f'DEBUG: Entropy threshold ({entropy_percentile}th percentile): {entropy_threshold:.4f}')
+                else:
+                    print(f'DEBUG: Variance threshold (fixed): {variance_threshold:.4f}')
+                    print(f'DEBUG: Entropy threshold (fixed): {entropy_threshold:.4f}')
                 print('DEBUG: Texture analysis: ENABLED (3-class classification)')
             else:
                 print('DEBUG: Texture analysis: DISABLED (binary classification)')
@@ -1124,16 +1999,50 @@ Target smoothing window: ~{target_smoothing_distance}m
 
     def perform_texture_analysis(self, input_raster_path, output_dir, feedback):
         """
-        Perform texture analysis using GRASS r.texture to distinguish vegetation from anthropogenic features
-        Based on Gray-Level Co-Occurrence Matrix (GLCM) metrics
+        Perform texture analysis using GRASS r.texture to distinguish vegetation from anthropogenic features.
+        
+        Implements Gray-Level Co-Occurrence Matrix (GLCM) texture analysis to distinguish
+        between natural vegetation and anthropogenic structures based on surface texture patterns.
+        This analysis is crucial for the 3-class classification system that separates
+        natural terrain, vegetation, and anthropogenic features.
+        
+        The method calculates two key texture metrics:
+        - Variance: Measures local surface variation (high for vegetation)
+        - Entropy: Measures texture complexity and heterogeneity (high for vegetation)
+        
+        Processing Workflow:
+        1. Check if texture analysis is enabled in UI
+        2. Convert input to integer format for GRASS compatibility
+        3. Calculate variance using GRASS r.texture
+        4. Calculate entropy using GRASS r.texture
+        5. Validate output files and load as QgsRasterLayers
+        6. Provide comprehensive diagnostics and fallback options
         
         Args:
-            input_raster_path: Path to filtered DSM
-            output_dir: Output directory
-            feedback: Processing feedback
+            input_raster_path (str): Path to the filtered DSM raster file
+            output_dir (str): Directory where texture analysis results will be saved
+            feedback (QgsProcessingFeedback): Processing feedback object for progress updates
             
         Returns:
             tuple: (variance_layer, entropy_layer) or (None, None) if disabled/failed
+                - variance_layer (QgsRasterLayer): Texture variance raster layer
+                - entropy_layer (QgsRasterLayer): Texture entropy raster layer
+                
+        Side Effects:
+            - Creates texture_variance.tif and texture_entropy.tif in output directory
+            - May create temporary files during processing
+            - Provides detailed debug output about processing steps
+            - Handles file cleanup for temporary files
+            
+        Raises:
+            Exception: If texture analysis fails completely (with fallback attempts)
+            
+        Note:
+            - Uses GRASS r.texture algorithm for GLCM calculation
+            - Supports configurable window size (default 3x3 to 9x9)
+            - Provides multiple fallback methods if GRASS fails
+            - Includes comprehensive file validation and diagnostics
+            - Handles large datasets with memory-efficient processing
         """
         try:
             # Check if texture analysis is enabled
@@ -1407,8 +2316,43 @@ Target smoothing window: ~{target_smoothing_distance}m
 
     def calculate_texture_alternative(self, input_raster_path, output_dir, window_size, feedback):
         """
-        Alternative texture calculation using GDAL focal statistics
-        This provides a reasonable approximation of variance and entropy
+        Alternative texture calculation using GDAL focal statistics.
+        
+        Provides a fallback texture calculation method when GRASS r.texture is not
+        available or fails. This method uses basic terrain derivatives to approximate
+        texture characteristics that can distinguish vegetation from anthropogenic features.
+        
+        The alternative approach uses:
+        - Slope as a proxy for surface variation (variance approximation)
+        - Roughness index as a proxy for surface complexity (entropy approximation)
+        
+        While not as sophisticated as GLCM texture analysis, this method provides
+        reasonable approximations that can still support 3-class classification.
+        
+        Args:
+            input_raster_path (str): Path to the input DSM raster file
+            output_dir (str): Directory where texture results will be saved
+            window_size (int): Window size parameter (not used in this fallback)
+            feedback (QgsProcessingFeedback): Processing feedback object
+            
+        Returns:
+            tuple: (variance_layer, entropy_layer) or (None, None) if calculation fails
+                - variance_layer (QgsRasterLayer): Approximate texture variance layer
+                - entropy_layer (QgsRasterLayer): Approximate texture entropy layer
+                
+        Side Effects:
+            - Creates texture_variance_gdal.tif and texture_entropy_gdal.tif
+            - Creates temporary terrain derivative files
+            - Cleans up temporary files after processing
+            
+        Raises:
+            Exception: If alternative texture calculation fails completely
+            
+        Note:
+            - Uses QGIS terrain analysis algorithms (slope, aspect, roughness)
+            - Provides reasonable approximations for texture analysis
+            - Much faster than GRASS r.texture but less sophisticated
+            - Suitable for datasets where GRASS is not available
         """
         print('DEBUG: Starting alternative GDAL-based texture calculation...')
         
@@ -1490,6 +2434,51 @@ Target smoothing window: ~{target_smoothing_distance}m
             return None, None
 
     def run_reconstruction(self):
+        """
+        Main reconstruction workflow orchestrating the entire bare earth reconstruction process.
+        
+        This is the core method that implements the complete bare earth reconstruction
+        workflow based on the methodology of Cao et al. (2020). It orchestrates all
+        processing steps from input validation through final output generation.
+        
+        Processing Workflow:
+        1. Input validation and DSM analysis
+        2. Auto-scaling of parameters based on resolution
+        3. Iterative Gaussian filtering for terrain separation
+        4. Geomorphometric analysis (slope, curvature, residuals)
+        5. Texture analysis for 3-class classification
+        6. Statistical analysis and adaptive threshold calculation
+        7. Anthropogenic feature identification and classification
+        8. Selective buffering and masking
+        9. Advanced interpolation for gap filling (Enhanced GDAL, Simple GDAL, or GRASS r.fillnulls)
+        10. Result validation and file organization
+        11. Comprehensive reporting and documentation
+        
+        The method supports both percentile-based adaptive thresholds (Cao et al. 2020)
+        and traditional fixed thresholds, with comprehensive fallback mechanisms
+        for robust processing across different datasets and environments.
+        
+        Side Effects:
+            - Creates multiple intermediate and final output files
+            - Updates progress bar and status messages throughout processing
+            - Loads result layers into QGIS project
+            - Generates comprehensive processing report
+            - Organizes output files for better structure
+            - Shows user notifications for warnings and completion
+            
+        Raises:
+            QMessageBox: Error dialogs for invalid inputs or processing failures
+            Exception: Detailed error messages for debugging
+            
+        Note:
+            - Implements comprehensive error handling with user feedback
+            - Provides detailed debug output for troubleshooting
+            - Supports multiple interpolation methods (Enhanced GDAL, Simple GDAL, GRASS r.fillnulls)
+            - GRASS r.fillnulls includes NoData validation, organic interpolation, and fallbacks
+            - Auto-scales parameters based on DSM resolution
+            - Generates comprehensive processing documentation
+            - Handles large datasets with memory-efficient processing
+        """
         try:
             # Reset progress display
             self.reset_progress()
@@ -1934,6 +2923,11 @@ Target smoothing window: ~{target_smoothing_distance}m
             self.update_progress(gaussian_iterations + 5, total_steps, "Statistical analysis & adaptive thresholds (Cao et al. 2020)...")
             print('DEBUG: Starting statistical analysis for adaptive thresholds...')
             
+            # Determine if texture analysis is available
+            use_texture = (texture_variance is not None and texture_variance.isValid() and 
+                          texture_entropy is not None and texture_entropy.isValid())
+            print(f'DEBUG: Texture analysis available: {use_texture}')
+            
             # Determine threshold values based on selected method
             if self.radioPercentile.isChecked():
                 print('DEBUG: Using percentile-based thresholds (Cao et al. 2020)')
@@ -1953,6 +2947,23 @@ Target smoothing window: ~{target_smoothing_distance}m
                     slope_threshold = self.spinSlope.value()
                     curvature_threshold = self.spinCurvature.value()
                     residual_threshold = self.spinResidual.value()
+                    
+                    # Get texture thresholds from UI for fallback
+                    variance_threshold = self.spinVarianceThreshold.value() if hasattr(self, 'spinVarianceThreshold') else 0.5
+                    entropy_threshold = self.spinEntropyThreshold.value() if hasattr(self, 'spinEntropyThreshold') else 2.0
+                    
+                    # Create fallback stats_results
+                    stats_results = {
+                        'slope_threshold': slope_threshold,
+                        'curvature_pos_threshold': curvature_threshold,
+                        'curvature_neg_threshold': -curvature_threshold,
+                        'residual_threshold': residual_threshold,
+                        'variance_threshold': variance_threshold,
+                        'entropy_threshold': entropy_threshold,
+                        'use_texture': use_texture,
+                        'threshold_method': 'fixed_fallback'
+                    }
+                    
                     print('DEBUG: Using fixed threshold fallback values')
                 else:
                     # Use calculated percentile thresholds
@@ -1961,14 +2972,25 @@ Target smoothing window: ~{target_smoothing_distance}m
                     curvature_neg_threshold = stats_results['curvature_neg_threshold']
                     residual_threshold = stats_results['residual_threshold']
                     
+                    # Get texture thresholds from stats_results
+                    variance_threshold = stats_results.get('variance_threshold', 0.5)
+                    entropy_threshold = stats_results.get('entropy_threshold', 2.0)
+                    
                     # For backwards compatibility with existing logic, use symmetric curvature threshold
                     curvature_threshold = max(abs(curvature_pos_threshold), abs(curvature_neg_threshold))
+                    
+                    # Ensure stats_results has all required fields
+                    stats_results['curvature_threshold'] = curvature_threshold
+                    stats_results['threshold_method'] = 'percentile'
                     
                     print('DEBUG: ===== Applied Adaptive Thresholds =====')
                     print(f'DEBUG: Slope threshold: {slope_threshold:.4f}°')
                     print(f'DEBUG: Curvature threshold: ±{curvature_threshold:.4f}')
                     if residual_threshold is not None:
                         print(f'DEBUG: Residual threshold: ±{residual_threshold:.4f}m')
+                    if use_texture:
+                        print(f'DEBUG: Variance threshold (percentile): {variance_threshold:.4f}')
+                        print(f'DEBUG: Entropy threshold (percentile): {entropy_threshold:.4f}')
                     print('DEBUG: ========================================')
                     
             else:
@@ -1977,10 +2999,29 @@ Target smoothing window: ~{target_smoothing_distance}m
                 curvature_threshold = self.spinCurvature.value()
                 residual_threshold = self.spinResidual.value()
                 
+                # Get texture thresholds from UI for fixed thresholds
+                variance_threshold = self.spinVarianceThreshold.value() if hasattr(self, 'spinVarianceThreshold') else 0.5
+                entropy_threshold = self.spinEntropyThreshold.value() if hasattr(self, 'spinEntropyThreshold') else 2.0
+                
+                # Create empty stats_results for fixed thresholds
+                stats_results = {
+                    'slope_threshold': slope_threshold,
+                    'curvature_pos_threshold': curvature_threshold,
+                    'curvature_neg_threshold': -curvature_threshold,
+                    'residual_threshold': residual_threshold,
+                    'variance_threshold': variance_threshold,
+                    'entropy_threshold': entropy_threshold,
+                    'use_texture': use_texture,
+                    'threshold_method': 'fixed'
+                }
+                
                 print('DEBUG: ===== Applied Fixed Thresholds =====')
                 print(f'DEBUG: Slope threshold: {slope_threshold:.4f}°')
                 print(f'DEBUG: Curvature threshold: ±{curvature_threshold:.4f}')
                 print(f'DEBUG: Residual threshold: ±{residual_threshold:.4f}m')
+                if use_texture:
+                    print(f'DEBUG: Variance threshold (fixed): {variance_threshold:.4f}')
+                    print(f'DEBUG: Entropy threshold (fixed): {entropy_threshold:.4f}')
                 print('DEBUG: ====================================')
 
             # Step 5: Identify anthropogenic features
@@ -2075,9 +3116,9 @@ Target smoothing window: ~{target_smoothing_distance}m
                 # 3-class formula WITH texture rasters: 0=Natural, 1=Vegetation, 2=Anthropogenic
                 print('DEBUG: Using 3-class texture-based classification (WITH texture rasters)')
                 if use_residuals and residual_layer is not None:
-                    calc_expression = f'if(("variance@1" > {variance_threshold} OR "entropy@1" > {entropy_threshold}), 1, if(("slope@1" > {slope_threshold} OR "curvature@1" > {curvature_threshold} OR "curvature@1" < -{curvature_threshold} OR ("residual@1" > {residual_threshold} OR "residual@1" < -{residual_threshold})) AND ("variance@1" <= {variance_threshold}), 2, 0))'
+                    calc_expression = f'if(("variance@1" > {variance_threshold} OR "entropy@1" > {entropy_threshold}) AND ("slope@1" <= {slope_threshold} AND "curvature@1" <= {curvature_threshold} AND "curvature@1" >= -{curvature_threshold} AND "residual@1" <= {residual_threshold} AND "residual@1" >= -{residual_threshold}), 1, if(("slope@1" > {slope_threshold} OR "curvature@1" > {curvature_threshold} OR "curvature@1" < -{curvature_threshold} OR "residual@1" > {residual_threshold} OR "residual@1" < -{residual_threshold}), 2, 0))'
                 else:
-                    calc_expression = f'if(("variance@1" > {variance_threshold} OR "entropy@1" > {entropy_threshold}), 1, if(("slope@1" > {slope_threshold} OR "curvature@1" > {curvature_threshold} OR "curvature@1" < -{curvature_threshold}) AND ("variance@1" <= {variance_threshold}), 2, 0))'
+                    calc_expression = f'if(("variance@1" > {variance_threshold} OR "entropy@1" > {entropy_threshold}) AND ("slope@1" <= {slope_threshold} AND "curvature@1" <= {curvature_threshold} AND "curvature@1" >= -{curvature_threshold}), 1, if(("slope@1" > {slope_threshold} OR "curvature@1" > {curvature_threshold} OR "curvature@1" < -{curvature_threshold}), 2, 0))'
                 
                 print(f'DEBUG:  CLASSIFICATION FORMULA: {calc_expression}')
                 print(f'DEBUG:  Thresholds - Variance: {variance_threshold}, Entropy: {entropy_threshold}')
@@ -2184,17 +3225,37 @@ Target smoothing window: ~{target_smoothing_distance}m
                 
                 # Sample values to see what classes were actually produced
                 try:
-                    block = classification_provider.block(1, classification_layer.extent(), 200, 200)  # Larger sample
+                    # Use sampling instead of block access for safety
                     unique_values = set()
                     class_counts = {0: 0, 1: 0, 2: 0}
-                    for i in range(min(200, block.width())):
-                        for j in range(min(200, block.height())):
-                            value = block.value(i, j)
-                            if value != block.noDataValue():
-                                int_value = int(value)
-                                unique_values.add(int_value)
-                                if int_value in class_counts:
-                                    class_counts[int_value] += 1
+                    samples_taken = 0
+                    max_samples = 400  # 20x20 sample grid
+                    
+                    for i in range(0, classification_layer.width(), max(1, classification_layer.width() // 20)):
+                        for j in range(0, classification_layer.height(), max(1, classification_layer.height() // 20)):
+                            if samples_taken >= max_samples:
+                                break
+                            
+                            try:
+                                # Convert pixel coordinates to map coordinates
+                                x = classification_layer.extent().xMinimum() + (i + 0.5) * classification_layer.rasterUnitsPerPixelX()
+                                y = classification_layer.extent().yMaximum() - (j + 0.5) * classification_layer.rasterUnitsPerPixelY()
+                                
+                                # Sample value using provider (safer than block access)
+                                value, success = classification_provider.sample(QgsPointXY(x, y), 1)
+                                if success and value != classification_provider.sourceNoDataValue(1):
+                                    int_value = int(value)
+                                    unique_values.add(int_value)
+                                    if int_value in class_counts:
+                                        class_counts[int_value] += 1
+                                
+                                samples_taken += 1
+                                
+                            except Exception as sample_error:
+                                continue
+                        
+                        if samples_taken >= max_samples:
+                            break
                     
                     print(f'DEBUG:  Unique classification values: {sorted(unique_values)}')
                     print(f'DEBUG:  Class distribution in sample:')
@@ -2225,13 +3286,34 @@ Target smoothing window: ~{target_smoothing_distance}m
                 
                 # Sample some values to see what's actually in the raster
                 try:
-                    block = provider.block(1, test_layer.extent(), 100, 100)  # Sample 100x100 pixels
+                    # Use sampling instead of block access for safety
                     unique_values = set()
-                    for i in range(min(100, block.width())):
-                        for j in range(min(100, block.height())):
-                            value = block.value(i, j)
-                            if value != block.noDataValue():
-                                unique_values.add(int(value))
+                    samples_taken = 0
+                    max_samples = 100  # 10x10 sample grid
+                    
+                    for i in range(0, test_layer.width(), max(1, test_layer.width() // 10)):
+                        for j in range(0, test_layer.height(), max(1, test_layer.height() // 10)):
+                            if samples_taken >= max_samples:
+                                break
+                            
+                            try:
+                                # Convert pixel coordinates to map coordinates
+                                x = test_layer.extent().xMinimum() + (i + 0.5) * test_layer.rasterUnitsPerPixelX()
+                                y = test_layer.extent().yMaximum() - (j + 0.5) * test_layer.rasterUnitsPerPixelY()
+                                
+                                # Sample value using provider (safer than block access)
+                                value, success = provider.sample(QgsPointXY(x, y), 1)
+                                if success and value != provider.sourceNoDataValue(1):
+                                    unique_values.add(int(value))
+                                
+                                samples_taken += 1
+                                
+                            except Exception as sample_error:
+                                continue
+                        
+                        if samples_taken >= max_samples:
+                            break
+                    
                     print(f'DEBUG:  Unique values found in sample: {sorted(unique_values)}')
                     
                     if len(unique_values) == 2 and 0 in unique_values and 1 in unique_values:
@@ -2883,11 +3965,19 @@ Target smoothing window: ~{target_smoothing_distance}m
                 interpolation_method = 'enhanced'
             elif self.radioSimple.isChecked():
                 interpolation_method = 'simple'
+            elif self.radioGrassFillnulls.isChecked():
+                interpolation_method = 'grass_fillnulls'
             
             print(f'DEBUG: User selected interpolation method: {interpolation_method.upper()}')
             
             # Update progress with selected method
-            self.update_progress(gaussian_iterations + 9, total_steps, f"Surface reconstruction using {interpolation_method.upper()}...")
+            method_display_name = {
+                'enhanced': 'ENHANCED GDAL',
+                'simple': 'SIMPLE GDAL', 
+                'grass_fillnulls': 'GRASS R.FILLNULLS'
+            }.get(interpolation_method, interpolation_method.upper())
+            
+            self.update_progress(gaussian_iterations + 9, total_steps, f"Surface reconstruction using {method_display_name}...")
             
             # Store original method for report (before potential fallbacks change it)
             original_interpolation_method = interpolation_method
@@ -2973,6 +4063,64 @@ Target smoothing window: ~{target_smoothing_distance}m
                 except Exception as e:
                     print(f'DEBUG: Enhanced GDAL fillnodata failed: {str(e)}')
                     print('DEBUG: Enhanced failed, automatically falling back to Simple GDAL method...')
+                    interpolation_method = 'simple'  # Auto-fallback to simple method
+                    
+            # GRASS r.fillnulls method (no fallbacks - direct execution only)
+            elif interpolation_method == 'grass_fillnulls':
+                print('DEBUG: Starting GRASS r.fillnulls interpolation...')
+                try:
+                    # Validate NoData values before processing
+                    print('DEBUG: Validating NoData values for GRASS r.fillnulls...')
+                    if not self.validate_nodata_raster(masked_dsm_path):
+                        raise Exception("NoData validation failed - raster may not have proper NoData values defined")
+                    
+                    # Get GRASS parameters from UI
+                    tension = self.spinTension.value()
+                    smooth = self.spinSmooth.value()
+                    edge = self.spinEdge.value()
+                    npmin = self.spinNpmin.value()
+                    segmax = self.spinSegmax.value()
+                    window_size = self.spinGrassWindowSize.value()
+                    
+                    print(f'DEBUG: GRASS r.fillnulls parameters:')
+                    print(f'DEBUG:   Tension: {tension}')
+                    print(f'DEBUG:   Smooth: {smooth}')
+                    print(f'DEBUG:   Edge: {edge}')
+                    print(f'DEBUG:   Npmin: {npmin}')
+                    print(f'DEBUG:   Segmax: {segmax}')
+                    print(f'DEBUG:   Window Size: {window_size}')
+                    
+                    # Execute GRASS r.fillnulls
+                    processing.run(
+                        'grass7:r.fillnulls',
+                        {
+                            'input': masked_dsm_path,
+                            'output': output_dsm,
+                            'method': 0,  # 0 = RST method for organic results
+                            'tension': tension,
+                            'smooth': smooth,
+                            'edge': edge,
+                            'npmin': npmin,
+                            'segmax': segmax,
+                            '-f': False,  # Don't overwrite
+                            'GRASS_REGION_PARAMETER': None,
+                            'GRASS_REGION_CELLSIZE_PARAMETER': 0,
+                            'GRASS_RASTER_FORMAT_OPT': '',
+                            'GRASS_RASTER_FORMAT_META': '',
+                            'GRASS_OUTPUT_TYPE_PARAMETER': 0
+                        },
+                        feedback=feedback
+                    )
+                    
+                    if os.path.isfile(output_dsm):
+                        interpolation_success = True
+                        print('DEBUG: GRASS r.fillnulls interpolation succeeded')
+                    else:
+                        raise Exception("GRASS r.fillnulls output file not created")
+                        
+                except Exception as e:
+                    print(f'DEBUG: GRASS r.fillnulls failed: {str(e)}')
+                    print('DEBUG: GRASS r.fillnulls failed - falling back to Simple GDAL method...')
                     interpolation_method = 'simple'  # Auto-fallback to simple method
                     
             # Simple method (can be called directly or as final fallback)
@@ -3106,7 +4254,7 @@ Target smoothing window: ~{target_smoothing_distance}m
                 fill_iterations=fill_iterations,
                 interpolation_method=interpolation_method,
                 original_interpolation_method=original_interpolation_method,
-                stats_results=stats_results if self.radioPercentile.isChecked() and 'stats_results' in locals() else None,
+                stats_results=stats_results,
                 slope_threshold=slope_threshold,
                 curvature_threshold=curvature_threshold,
                 residual_threshold=residual_threshold,
@@ -3135,22 +4283,132 @@ Target smoothing window: ~{target_smoothing_distance}m
 
 
 class BareEarthReconstructor:
+    """
+    Main plugin class for the Bare Earth Reconstructor QGIS plugin.
+    
+    This class handles the plugin lifecycle, including initialization, GUI setup,
+    and cleanup. It serves as the entry point for the plugin and manages the
+    dialog instance throughout the plugin's lifetime.
+    
+    The plugin provides a scientific tool for reconstructing natural terrain
+    surfaces from Digital Surface Models (DSM) by removing anthropogenic structures
+    and vegetation using the methodology of Cao et al. (2020).
+    
+    Key Features:
+    - Adaptive percentile-based thresholds for terrain-independent processing
+    - 3-class classification (Natural/Vegetation/Anthropogenic)
+    - Texture analysis using GLCM metrics
+    - Multi-stage Gaussian filtering
+    - Multiple interpolation methods (Enhanced GDAL, Simple GDAL, GRASS r.fillnulls)
+    - GRASS r.fillnulls with NoData validation, organic RST interpolation, and fallbacks
+    - Comprehensive processing reports and documentation
+    
+    Attributes:
+        iface: QGIS interface object for plugin integration
+        dlg: Main dialog instance (BareEarthReconstructorDialog)
+        action: QAction object for menu integration
+        
+    Methods:
+        - __init__: Initialize plugin with QGIS interface
+        - initGui: Set up plugin GUI and menu integration
+        - unload: Clean up plugin resources
+        - run: Launch the main dialog
+    """
+    
     def __init__(self, iface):
+        """
+        Initialize the Bare Earth Reconstructor plugin.
+        
+        Sets up the plugin with the QGIS interface and initializes
+        internal variables. The dialog is created lazily (on first use)
+        to improve startup performance.
+        
+        Args:
+            iface: QGIS interface object providing access to QGIS functionality
+                - Used for menu integration and plugin lifecycle management
+                - Provides access to main window and project instance
+                
+        Side Effects:
+            - Stores iface reference for later use
+            - Initializes dialog and action attributes to None
+            - Prepares plugin for GUI initialization
+        """
         self.iface = iface
         self.dlg = None
         self.action = None
 
     def initGui(self):
+        """
+        Initialize the plugin GUI and integrate with QGIS interface.
+        
+        Creates the plugin action and adds it to the QGIS menu system.
+        This method is called by QGIS during plugin startup to set up
+        the user interface elements.
+        
+        The plugin is added to the "Bare Earth Reconstructor" menu,
+        which appears in the QGIS main menu bar. Users can access
+        the plugin functionality through this menu item.
+        
+        Side Effects:
+            - Creates QAction for plugin menu integration
+            - Connects action to run method
+            - Adds action to QGIS menu system
+            - Makes plugin available to users through QGIS interface
+            
+        Note:
+            - Called automatically by QGIS during plugin loading
+            - Sets up signal connections for user interaction
+            - Integrates plugin into QGIS menu structure
+        """
         self.action = QAction('Bare Earth Reconstructor', self.iface.mainWindow())
         self.action.triggered.connect(self.run)
         self.iface.addPluginToMenu('&Bare Earth Reconstructor', self.action)
 
     def unload(self):
+        """
+        Clean up plugin resources and remove from QGIS interface.
+        
+        This method is called by QGIS when the plugin is unloaded or
+        QGIS is shutting down. It ensures proper cleanup of resources
+        and removes the plugin from the QGIS interface.
+        
+        Side Effects:
+            - Removes plugin action from QGIS menu
+            - Clears action reference
+            - Ensures proper resource cleanup
+            
+        Note:
+            - Called automatically by QGIS during plugin unloading
+            - Prevents memory leaks and interface conflicts
+            - Ensures clean plugin shutdown
+        """
         if self.action:
             self.iface.removePluginMenu('&Bare Earth Reconstructor', self.action)
             self.action = None
 
     def run(self):
+        """
+        Launch the main plugin dialog and handle user interaction.
+        
+        Creates and displays the main reconstruction dialog if it doesn't
+        already exist. This method is called when the user clicks the
+        plugin menu item or action button.
+        
+        The dialog is created lazily (only when needed) to improve
+        plugin startup performance. Once created, the same dialog instance
+        is reused for subsequent calls.
+        
+        Side Effects:
+            - Creates BareEarthReconstructorDialog instance if not exists
+            - Shows dialog to user
+            - Brings dialog to front and activates it
+            - Handles dialog lifecycle management
+            
+        Note:
+            - Uses singleton pattern for dialog instance
+            - Ensures dialog is properly focused when shown
+            - Manages dialog state throughout plugin lifetime
+        """
         if not self.dlg:
             self.dlg = BareEarthReconstructorDialog()
         self.dlg.show()

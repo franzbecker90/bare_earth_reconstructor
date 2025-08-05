@@ -763,6 +763,162 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QRadioButton" name="radioGrassFillnulls">
+            <property name="text">
+             <string>GRASS r.fillnulls - Organic</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupGrassFillnulls">
+         <property name="title">
+          <string>GRASS r.fillnulls Parameters</string>
+         </property>
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayoutGrassFillnulls">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayoutGrassLabels">
+            <item>
+             <widget class="QLabel" name="labelTension">
+              <property name="text">
+               <string>Tension:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelSmooth">
+              <property name="text">
+               <string>Smooth:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelEdge">
+              <property name="text">
+               <string>Edge:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelNpmin">
+              <property name="text">
+               <string>Npmin:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelSegmax">
+              <property name="text">
+               <string>Segmax:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelWindowSize">
+              <property name="text">
+               <string>Window Size:</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayoutGrassSpins">
+            <item>
+             <widget class="QSpinBox" name="spinTension">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>50</number>
+              </property>
+              <property name="value">
+               <number>20</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="spinSmooth">
+              <property name="minimum">
+               <double>0.01</double>
+              </property>
+              <property name="maximum">
+               <double>1.0</double>
+              </property>
+              <property name="value">
+               <double>0.1</double>
+              </property>
+              <property name="singleStep">
+               <double>0.01</double>
+              </property>
+              <property name="decimals">
+               <number>2</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinEdge">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>10</number>
+              </property>
+              <property name="value">
+               <number>3</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinNpmin">
+              <property name="minimum">
+               <number>100</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
+              </property>
+              <property name="value">
+               <number>400</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinSegmax">
+              <property name="minimum">
+               <number>50</number>
+              </property>
+              <property name="maximum">
+               <number>500</number>
+              </property>
+              <property name="value">
+               <number>200</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinGrassWindowSize">
+              <property name="minimum">
+               <number>3</number>
+              </property>
+              <property name="maximum">
+               <number>15</number>
+              </property>
+              <property name="value">
+               <number>5</number>
+              </property>
+              <property name="toolTip">
+               <string>Window size for GRASS r.fillnulls interpolation. Smaller values (3-7) preserve more detail, larger values (8-15) create smoother surfaces.</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
          </layout>
         </widget>
        </item>
